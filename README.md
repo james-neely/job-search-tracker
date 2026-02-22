@@ -35,13 +35,41 @@ bun run dev
 
 The app will be available at `http://localhost:3000`.
 
-### Docker
+### Docker (Development)
 
 ```bash
 docker compose up
 ```
 
 The app will be available at `http://localhost:3001`.
+
+### Docker (Production)
+
+The production image uses the `production` target in the Dockerfile and does not include dev dependencies like `drizzle-kit`. You need to initialize the database schema separately before starting the app.
+
+1. Build the production and dev images:
+
+```bash
+docker build --target production -t job-search-tracker .
+docker build --target dev -t job-search-tracker-dev .
+```
+
+2. Initialize the database schema using the dev image:
+
+```bash
+docker run --rm -v job-search-tracker-data:/app/data job-search-tracker-dev bun run db:push
+```
+
+3. Start the production container:
+
+```bash
+docker run -d --name job-search-tracker \
+  -p 3000:3000 \
+  -v job-search-tracker-data:/app/data \
+  job-search-tracker
+```
+
+If the app gets stuck on "Loading settings...", the database tables likely haven't been created. Re-run step 2 and restart the container.
 
 ## Scripts
 
