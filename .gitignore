@@ -27,3 +27,5 @@ next-env.d.ts
 !/data/uploads/.gitkeep
 /data/*.db
 /data/*.db-journal
+/data/*.db-shm
+/data/*.db-wal
