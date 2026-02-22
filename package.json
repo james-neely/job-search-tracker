@@ -1,0 +1,42 @@
+{
+  "name": "job-search-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@ai-sdk/xai": "^3.0.57",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.0",
+    "@mui/lab": "^6.0.0-beta.0",
+    "@mui/material": "^6.4.0",
+    "@mui/material-nextjs": "^6.4.0",
+    "@mui/x-date-pickers": "^7.25.0",
+    "ai": "^6.0.97",
+    "dayjs": "^1.11.0",
+    "drizzle-orm": "^0.39.0",
+    "next": "^15.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.0.0",
+    "@libsql/client": "^0.17.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/uuid": "^10.0.0",
+    "drizzle-kit": "^0.30.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.2.0",
+    "typescript": "^5.0.0"
+  }
+}
