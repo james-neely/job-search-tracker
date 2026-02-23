@@ -58,6 +58,13 @@ export interface Setting {
   value: string;
 }
 
+export interface JobBoard {
+  id: number;
+  name: string;
+  url: string;
+  createdAt: string;
+}
+
 export interface DashboardStats {
   totalApplications: number;
   appliedToday: number;

@@ -13,6 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import WorkIcon from "@mui/icons-material/Work";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SettingsIcon from "@mui/icons-material/Settings";
 
 export const DRAWER_WIDTH = 240;
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Dashboard", href: "/", icon: <DashboardIcon /> },
   { label: "Applications", href: "/applications", icon: <WorkIcon /> },
   { label: "New Application", href: "/applications/new", icon: <AddCircleIcon /> },
+  { label: "Job Boards", href: "/job-boards", icon: <OpenInNewIcon /> },
   { label: "Settings", href: "/settings", icon: <SettingsIcon /> },
 ];
 
