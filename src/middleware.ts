@@ -28,20 +28,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(COOKIE_NAME)?.value;
-  const expectedToken = await generateExpectedToken(authPassword);
-  const isAuthenticated = token === expectedToken;
+  try {
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+    const expectedToken = await generateExpectedToken(authPassword);
+    const isAuthenticated = token === expectedToken;
 
-  if (isAuthenticated) {
+    if (isAuthenticated) {
+      return NextResponse.next();
+    }
+
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
+  } catch (error) {
+    console.error("Auth middleware error:", error);
     return NextResponse.next();
   }
-
-  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
-  if (isApiRoute) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  return NextResponse.redirect(new URL("/login", request.url));
 }
 
 export const config = {
