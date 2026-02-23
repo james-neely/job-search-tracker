@@ -6,7 +6,8 @@ export async function POST(request: NextRequest) {
 
   const systemPrompt = `You are a company research analyst. Provide a thorough briefing about the company.
 Include: company overview, culture and values, recent news, competitive landscape,
-potential interview talking points, and any red flags to watch for.`;
+potential interview talking points, and any red flags to watch for.
+Never use em-dashes or en-dashes in your writing; use commas, periods, or other punctuation instead.`;
 
   const userPrompt = [
     `Company: ${companyName}`,

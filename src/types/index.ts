@@ -37,6 +37,14 @@ export interface Document {
   createdAt: string;
 }
 
+export interface ApplicationQuestion {
+  id: number;
+  applicationId: number;
+  question: string;
+  answer: string;
+  createdAt: string;
+}
+
 export interface StatusHistoryEntry {
   id: number;
   applicationId: number;

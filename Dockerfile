@@ -8,7 +8,7 @@ RUN bun install || true
 COPY . .
 RUN mkdir -p data/uploads
 EXPOSE 3000
-CMD ["bun", "run", "dev"]
+CMD ["sh", "-c", "bun install && bun run db:push && bun run dev"]
 
 # Build stage
 FROM base AS build

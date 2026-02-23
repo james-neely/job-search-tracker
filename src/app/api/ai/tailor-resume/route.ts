@@ -10,7 +10,8 @@ export async function POST(request: NextRequest) {
   const systemPrompt = `You are an expert ${docLabel} writer and career coach.
 Tailor the candidate's ${docLabel} to the specific job posting.
 Highlight relevant skills, use keywords from the job description,
-and suggest specific improvements with explanations.`;
+and suggest specific improvements with explanations.
+Never use em-dashes or en-dashes in your writing; use commas, periods, or other punctuation instead.`;
 
   const userPrompt = [
     `Company: ${companyName}`,

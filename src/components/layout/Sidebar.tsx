@@ -8,6 +8,8 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import WorkIcon from "@mui/icons-material/Work";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -22,21 +24,18 @@ const navItems = [
   { label: "Settings", href: "/settings", icon: <SettingsIcon /> },
 ];
 
-export default function Sidebar() {
-  const pathname = usePathname();
+interface SidebarProps {
+  mobileOpen: boolean;
+  onClose: () => void;
+}
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: DRAWER_WIDTH,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: DRAWER_WIDTH,
-          boxSizing: "border-box",
-        },
-      }}
-    >
+export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
+  const pathname = usePathname();
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+
+  const drawerContent = (
+    <>
       <Toolbar>
         <Typography variant="h6" noWrap fontWeight="bold">
           Job Tracker
@@ -49,12 +48,48 @@ export default function Sidebar() {
             component={Link}
             href={item.href}
             selected={pathname === item.href}
+            onClick={isDesktop ? undefined : onClose}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.label} />
           </ListItemButton>
         ))}
       </List>
+    </>
+  );
+
+  if (isDesktop) {
+    return (
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: DRAWER_WIDTH,
+          flexShrink: 0,
+          "& .MuiDrawer-paper": {
+            width: DRAWER_WIDTH,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    );
+  }
+
+  return (
+    <Drawer
+      variant="temporary"
+      open={mobileOpen}
+      onClose={onClose}
+      ModalProps={{ keepMounted: true }}
+      sx={{
+        "& .MuiDrawer-paper": {
+          width: DRAWER_WIDTH,
+          boxSizing: "border-box",
+        },
+      }}
+    >
+      {drawerContent}
     </Drawer>
   );
 }

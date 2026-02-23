@@ -6,7 +6,8 @@ export async function POST(request: NextRequest) {
 
   const systemPrompt = `You are an expert interview coach. Prepare the candidate for an interview.
 Provide: key topics to study, likely questions (behavioral and technical),
-suggested answers using the STAR method, and questions to ask the interviewer.`;
+suggested answers using the STAR method, and questions to ask the interviewer.
+Never use em-dashes or en-dashes in your writing; use commas, periods, or other punctuation instead.`;
 
   const userPrompt = [
     `Company: ${companyName}`,

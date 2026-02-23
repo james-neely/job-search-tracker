@@ -41,6 +41,7 @@ function buildSystemPrompt(context: RequestBody["context"]): string {
   parts.push(
     `\nProvide concise, tailored answers that reference the specific company and role when relevant.`,
     `If the user pastes an application question, help them craft a strong answer.`,
+    `Never use em-dashes or en-dashes in your writing; use commas, periods, or other punctuation instead.`,
   );
 
   return parts.join("\n");
