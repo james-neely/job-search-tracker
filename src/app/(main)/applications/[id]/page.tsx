@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
 import LoadingState from "@/components/common/LoadingState";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ApplicationForm from "@/components/applications/ApplicationForm";
@@ -15,6 +16,7 @@ import DocumentsEditor from "@/components/applications/DocumentsEditor";
 import InterviewPrepPanel from "@/components/ai/InterviewPrepPanel";
 import CompanyResearchPanel from "@/components/ai/CompanyResearchPanel";
 import ResumeTailorPanel from "@/components/ai/ResumeTailorPanel";
+import ApplicationChat from "@/components/ai/ApplicationChat";
 import type { Application, CompanyLink, Document, StatusHistoryEntry } from "@/types";
 
 export default function ApplicationDetailPage() {
@@ -80,6 +82,12 @@ export default function ApplicationDetailPage() {
           <ResumeTailorPanel companyName={application.companyName} jobTitle={application.jobTitle} jobDescription={application.jobDescription ?? undefined} />
         </Box>
       )}
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Application Assistant
+        </Typography>
+        <ApplicationChat application={application} />
+      </Paper>
       <ConfirmDialog open={deleteOpen} title="Delete Application" message="Are you sure? This will permanently delete this application and all related data." onConfirm={handleDelete} onCancel={() => setDeleteOpen(false)} />
     </Box>
   );

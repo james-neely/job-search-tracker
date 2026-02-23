@@ -8,6 +8,7 @@ import Paper from "@mui/material/Paper";
 import Alert from "@mui/material/Alert";
 import Grid from "@mui/material/Grid2";
 import LoadingState from "@/components/common/LoadingState";
+import ProfileInfoFields from "@/components/settings/ProfileInfoFields";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -33,20 +34,28 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const handleChange = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSettings((s) => ({ ...s, [key]: e.target.value }));
+  };
+
   if (loading) return <LoadingState message="Loading settings..." />;
 
   return (
     <Box>
       <Typography variant="h4" gutterBottom fontWeight="bold">Settings</Typography>
       {saved && <Alert severity="success" sx={{ mb: 2 }}>Settings saved.</Alert>}
+
+      <ProfileInfoFields settings={settings} onChange={handleChange} />
+
       <Paper sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>App Configuration</Typography>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Unemployment Start Date"
               type="date"
               value={settings.unemployment_start_date || ""}
-              onChange={(e) => setSettings((s) => ({ ...s, unemployment_start_date: e.target.value }))}
+              onChange={handleChange("unemployment_start_date")}
               fullWidth
               slotProps={{ inputLabel: { shrink: true } }}
               helperText="Used to calculate days of unemployment on the dashboard"
@@ -57,7 +66,7 @@ export default function SettingsPage() {
               label="xAI API Key"
               type="password"
               value={settings.xai_api_key || ""}
-              onChange={(e) => setSettings((s) => ({ ...s, xai_api_key: e.target.value }))}
+              onChange={handleChange("xai_api_key")}
               fullWidth
               helperText="Required for AI-powered features (interview prep, company research, resume tailoring)"
             />
