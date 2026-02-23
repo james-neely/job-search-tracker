@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Providers from "./providers";
-import AppShell from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
   title: "Job Search Tracker",
@@ -25,9 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <AppShell>{children}</AppShell>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
