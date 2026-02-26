@@ -26,7 +26,7 @@ export async function getDashboardStats() {
 
   const beyondSaved = allApps.filter((a) => a.status !== "saved");
   const beyondApplied = allApps.filter(
-    (a) => !["saved", "applied"].includes(a.status)
+    (a) => !["saved", "applied", "rejected", "withdrawn"].includes(a.status)
   );
   const appliedPlus = allApps.filter((a) => a.status !== "saved");
 
