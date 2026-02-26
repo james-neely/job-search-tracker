@@ -7,8 +7,11 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DownloadIcon from "@mui/icons-material/Download";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import LinkIcon from "@mui/icons-material/Link";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import FileUpload from "@/components/common/FileUpload";
@@ -54,27 +57,14 @@ export default function DocumentsEditor({
         {documents.map((doc) => (
           <ListItem
             key={doc.id}
-            secondaryAction={
-              <IconButton edge="end" size="small" onClick={() => handleDelete(doc.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            }
+            secondaryAction={<DocumentActions doc={doc} onDelete={handleDelete} />}
           >
             <ListItemText
               primary={
-                doc.isUrl ? (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <LinkIcon fontSize="small" />
-                    <a href={doc.filePath} target="_blank" rel="noopener noreferrer">
-                      {doc.label}
-                    </a>
-                  </Box>
-                ) : (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <InsertDriveFileIcon fontSize="small" />
-                    {doc.label}
-                  </Box>
-                )
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  {doc.isUrl ? <LinkIcon fontSize="small" /> : <InsertDriveFileIcon fontSize="small" />}
+                  {doc.label}
+                </Box>
               }
             />
           </ListItem>
@@ -94,6 +84,37 @@ export default function DocumentsEditor({
           onUrlSet={(url) => saveDocument(url, true)}
         />
       </Box>
+    </Box>
+  );
+}
+
+function DocumentActions({ doc, onDelete }: { doc: Document; onDelete: (id: number) => void }) {
+  const previewUrl = doc.isUrl ? doc.filePath : `/api/files/${doc.filePath}`;
+  const downloadUrl = doc.isUrl ? doc.filePath : `/api/files/${doc.filePath}?download=1`;
+
+  return (
+    <Box sx={{ display: "flex", gap: 0.5 }}>
+      <Tooltip title="Preview">
+        <IconButton
+          edge="end" size="small"
+          onClick={() => window.open(previewUrl, "_blank")}
+        >
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Download">
+        <IconButton
+          edge="end" size="small" component="a"
+          href={downloadUrl} download
+        >
+          <DownloadIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Delete">
+        <IconButton edge="end" size="small" onClick={() => onDelete(doc.id)}>
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
     </Box>
   );
 }

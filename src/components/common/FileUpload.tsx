@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -21,10 +21,9 @@ export default function FileUpload({
   const [mode, setMode] = useState<"upload" | "url">("upload");
   const [url, setUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFile = useCallback(async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
     setUploading(true);
@@ -34,7 +33,29 @@ export default function FileUpload({
     } finally {
       setUploading(false);
     }
+  }, [onFileUploaded]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
   };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+  }, [uploadFile]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
 
   return (
     <Box>
@@ -52,10 +73,30 @@ export default function FileUpload({
       </ToggleButtonGroup>
 
       {mode === "upload" ? (
-        <Button variant="outlined" component="label" disabled={uploading} fullWidth>
-          {uploading ? "Uploading..." : "Choose File"}
-          <input type="file" hidden onChange={handleFileChange} />
-        </Button>
+        <Box
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          sx={{
+            border: "2px dashed",
+            borderColor: dragOver ? "primary.main" : "divider",
+            borderRadius: 1,
+            p: 3,
+            textAlign: "center",
+            bgcolor: dragOver ? "action.hover" : "transparent",
+            transition: "all 0.2s ease",
+            cursor: uploading ? "wait" : "pointer",
+          }}
+        >
+          <UploadFileIcon sx={{ fontSize: 36, color: "text.secondary", mb: 1 }} />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {uploading ? "Uploading..." : "Drag & drop a file here, or"}
+          </Typography>
+          <Button variant="outlined" component="label" disabled={uploading} size="small">
+            Browse Files
+            <input type="file" hidden onChange={handleFileChange} />
+          </Button>
+        </Box>
       ) : (
         <Box sx={{ display: "flex", gap: 1 }}>
           <TextField
