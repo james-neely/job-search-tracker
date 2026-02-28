@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { streamChat } from "@/lib/xai-client";
+import { getSetting } from "@/db/queries/settings";
 
 interface Message {
   role: "user" | "assistant";
@@ -21,7 +22,7 @@ interface RequestBody {
   };
 }
 
-function buildSystemPrompt(context: RequestBody["context"]): string {
+function buildSystemPrompt(context: RequestBody["context"], resumeText: string | null): string {
   const parts = [
     `You are a helpful job application assistant. The user is applying for a position and may ask for help answering application questions, drafting responses, or preparing materials.`,
     `\nApplication context:`,
@@ -37,6 +38,7 @@ function buildSystemPrompt(context: RequestBody["context"]): string {
   }
   if (context.jobDescription) parts.push(`\nJob description:\n${context.jobDescription}`);
   if (context.notes) parts.push(`\nUser's notes:\n${context.notes}`);
+  if (resumeText) parts.push(`\nCandidate's resume:\n${resumeText}`);
 
   parts.push(
     `\nProvide concise, tailored answers that reference the specific company and role when relevant.`,
@@ -50,7 +52,8 @@ function buildSystemPrompt(context: RequestBody["context"]): string {
 export async function POST(request: NextRequest) {
   const { messages, context }: RequestBody = await request.json();
 
-  const systemPrompt = buildSystemPrompt(context);
+  const resumeText = await getSetting("resume_text");
+  const systemPrompt = buildSystemPrompt(context, resumeText);
 
   const chatMessages = [
     { role: "system" as const, content: systemPrompt },
