@@ -56,12 +56,16 @@ export default function ResumeUploadSection({ initialResumePath }: Props) {
 
   const handleDelete = async () => {
     setError(null);
-    const response = await fetch("/api/resume", { method: "DELETE" });
-    if (response.ok) {
-      setResumePath("");
-      setResumeText(null);
-    } else {
-      setError("Failed to remove resume");
+    try {
+      const response = await fetch("/api/resume", { method: "DELETE" });
+      if (response.ok) {
+        setResumePath("");
+        setResumeText(null);
+      } else {
+        setError("Failed to remove resume");
+      }
+    } catch {
+      setError("Failed to remove resume. Please try again.");
     }
   };
 

@@ -22,6 +22,9 @@ FROM base AS production
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+COPY --from=build /app/node_modules/pdf-parse ./node_modules/pdf-parse
+COPY --from=build /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
+COPY --from=build /app/node_modules/@napi-rs ./node_modules/@napi-rs
 RUN mkdir -p data/uploads
 EXPOSE 3000
 CMD ["bun", "server.js"]
