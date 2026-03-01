@@ -8,22 +8,26 @@ import StatsGrid from "@/components/dashboard/StatsGrid";
 import StatusBreakdown from "@/components/dashboard/StatusBreakdown";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import QuickCopyGrid from "@/components/dashboard/QuickCopyGrid";
+import PendingTasks from "@/components/dashboard/PendingTasks";
 import LoadingState from "@/components/common/LoadingState";
-import type { DashboardStats } from "@/types";
+import type { DashboardStats, PendingTask } from "@/types";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/stats").then((r) => r.json()),
       fetch("/api/settings").then((r) => r.json()),
+      fetch("/api/tasks/pending").then((r) => r.json()),
     ])
-      .then(([statsData, settingsData]) => {
+      .then(([statsData, settingsData, tasksData]) => {
         setStats(statsData);
         setSettings(settingsData);
+        setPendingTasks(tasksData);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -36,6 +40,14 @@ export default function DashboardPage() {
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Dashboard
       </Typography>
+      {pendingTasks.length > 0 && (
+        <Paper sx={{ p: 2, mb: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Pending Tasks
+          </Typography>
+          <PendingTasks tasks={pendingTasks} />
+        </Paper>
+      )}
       <StatsGrid stats={stats} />
       <QuickCopySection settings={settings} />
       <Grid container spacing={3} sx={{ mt: 1 }}>

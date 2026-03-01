@@ -18,7 +18,9 @@ import InterviewPrepPanel from "@/components/ai/InterviewPrepPanel";
 import CompanyResearchPanel from "@/components/ai/CompanyResearchPanel";
 import ResumeTailorPanel from "@/components/ai/ResumeTailorPanel";
 import ApplicationChat from "@/components/ai/ApplicationChat";
-import type { Application, ApplicationQuestion, CompanyLink, Document, StatusHistoryEntry } from "@/types";
+import TasksEditor from "@/components/applications/TasksEditor";
+import CoverLetterTab from "@/components/applications/CoverLetterTab";
+import type { Application, ApplicationQuestion, ApplicationTask, CompanyLink, Document, StatusHistoryEntry } from "@/types";
 
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,22 +30,25 @@ export default function ApplicationDetailPage() {
   const [links, setLinks] = useState<CompanyLink[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [questions, setQuestions] = useState<ApplicationQuestion[]>([]);
+  const [tasks, setTasks] = useState<ApplicationTask[]>([]);
   const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const fetchAll = useCallback(async () => {
-    const [appRes, linksRes, docsRes, questionsRes, histRes] = await Promise.all([
+    const [appRes, linksRes, docsRes, questionsRes, tasksRes, histRes] = await Promise.all([
       fetch(`/api/applications/${id}`),
       fetch(`/api/applications/${id}/links`),
       fetch(`/api/applications/${id}/documents`),
       fetch(`/api/applications/${id}/questions`),
+      fetch(`/api/applications/${id}/tasks`),
       fetch(`/api/applications/${id}/status-history`),
     ]);
     setApplication(await appRes.json());
     setLinks(await linksRes.json());
     setDocuments(await docsRes.json());
     setQuestions(await questionsRes.json());
+    setTasks(await tasksRes.json());
     setHistory(await histRes.json());
     setLoading(false);
   }, [id]);
@@ -74,6 +79,8 @@ export default function ApplicationDetailPage() {
         <Tab label="Documents" />
         <Tab label="Timeline" />
         <Tab label="Questions" />
+        <Tab label="Tasks" />
+        <Tab label="Cover Letter" />
         <Tab label="AI Tools" />
       </Tabs>
       {tab === 0 && <ApplicationForm application={application} />}
@@ -81,13 +88,16 @@ export default function ApplicationDetailPage() {
       {tab === 2 && <DocumentsEditor applicationId={application.id} documents={documents} onUpdate={fetchAll} />}
       {tab === 3 && <StatusTimeline history={history} />}
       {tab === 4 && <QuestionsEditor applicationId={application.id} questions={questions} onUpdate={fetchAll} />}
-      {tab === 5 && (
+      {tab === 5 && <TasksEditor applicationId={application.id} tasks={tasks} onUpdate={fetchAll} />}
+      {tab === 6 && <CoverLetterTab application={application} onUpdate={fetchAll} />}
+      {tab === 7 && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <InterviewPrepPanel companyName={application.companyName} jobTitle={application.jobTitle} jobDescription={application.jobDescription ?? undefined} />
           <CompanyResearchPanel companyName={application.companyName} jobTitle={application.jobTitle} />
           <ResumeTailorPanel companyName={application.companyName} jobTitle={application.jobTitle} jobDescription={application.jobDescription ?? undefined} />
         </Box>
       )}
+
       <Paper sx={{ p: 3, mt: 3 }}>
         <Typography variant="h6" gutterBottom>
           Application Assistant

@@ -17,6 +17,7 @@ export const applications = sqliteTable("applications", {
   resumeIsUrl: integer("resume_is_url", { mode: "boolean" }).default(false),
   coverLetterPath: text("cover_letter_path"),
   coverLetterIsUrl: integer("cover_letter_is_url", { mode: "boolean" }).default(false),
+  coverLetterText: text("cover_letter_text"),
   dateApplied: text("date_applied"),
   createdAt: text("created_at").default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`),

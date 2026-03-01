@@ -5,3 +5,4 @@ export { statusHistory } from "./schemas/status-history";
 export { settings } from "./schemas/settings";
 export { applicationQuestions } from "./schemas/application-questions";
 export { jobBoards } from "./schemas/job-boards";
+export { applicationTasks } from "./schemas/application-tasks";

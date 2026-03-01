@@ -16,6 +16,7 @@ export interface Application {
   resumeIsUrl: boolean;
   coverLetterPath: string | null;
   coverLetterIsUrl: boolean;
+  coverLetterText: string | null;
   dateApplied: string | null;
   createdAt: string;
   updatedAt: string;
@@ -63,6 +64,21 @@ export interface JobBoard {
   name: string;
   url: string;
   createdAt: string;
+}
+
+export interface ApplicationTask {
+  id: number;
+  applicationId: number;
+  title: string;
+  url: string | null;
+  dueDate: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface PendingTask extends ApplicationTask {
+  companyName: string;
+  jobTitle: string;
 }
 
 export interface DashboardStats {
