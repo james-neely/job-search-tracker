@@ -9,9 +9,14 @@ import {
   CircularProgress,
   Paper,
   Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import type { Application } from "@/types";
 
 interface CoverLetterTabProps {
@@ -23,9 +28,12 @@ export default function CoverLetterTab({ application, onUpdate }: CoverLetterTab
   const [text, setText] = useState(application.coverLetterText ?? "");
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [selectedFont, setSelectedFont] = useState<"ocr-a" | "ocr-b">("ocr-a");
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -97,6 +105,34 @@ export default function CoverLetterTab({ application, onUpdate }: CoverLetterTab
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleGeneratePdf = async () => {
+    if (!text.trim()) return;
+
+    setGeneratingPdf(true);
+    setPdfError(null);
+
+    try {
+      const response = await fetch(`/api/applications/${application.id}/cover-letter/generate-document`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ font: selectedFont, text }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to generate PDF");
+      }
+
+      const result = await response.json();
+      onUpdate();
+      window.open(`/api/files/${result.document.filePath}`, "_blank");
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   return (
     <Paper sx={{ p: 3 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
@@ -127,7 +163,7 @@ export default function CoverLetterTab({ application, onUpdate }: CoverLetterTab
         sx={{ mb: 2 }}
       />
 
-      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+      <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
         <Button
           variant="contained"
           onClick={handleSave}
@@ -143,9 +179,35 @@ export default function CoverLetterTab({ application, onUpdate }: CoverLetterTab
         >
           {copied ? "Copied" : "Copy"}
         </Button>
+        <FormControl size="small" sx={{ minWidth: 100 }}>
+          <InputLabel>Font</InputLabel>
+          <Select
+            value={selectedFont}
+            label="Font"
+            onChange={(e) => setSelectedFont(e.target.value as "ocr-a" | "ocr-b")}
+          >
+            <MenuItem value="ocr-a">Courier (OCR-style)</MenuItem>
+            <MenuItem value="ocr-b">Courier Bold (OCR-style)</MenuItem>
+          </Select>
+        </FormControl>
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={generatingPdf ? <CircularProgress size={16} color="inherit" /> : <PictureAsPdfIcon />}
+          onClick={handleGeneratePdf}
+          disabled={generatingPdf || !text.trim()}
+        >
+          {generatingPdf ? "Generating PDF..." : "Generate PDF"}
+        </Button>
         {saveStatus === "success" && <Alert severity="success" sx={{ py: 0 }}>Saved</Alert>}
         {saveStatus === "error" && <Alert severity="error" sx={{ py: 0 }}>Save failed</Alert>}
       </Box>
+
+      {pdfError && (
+        <Alert severity="error" sx={{ mt: 1 }}>
+          {pdfError}
+        </Alert>
+      )}
     </Paper>
   );
 }

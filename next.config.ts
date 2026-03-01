@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  serverExternalPackages: ["pdf-parse", "drizzle-orm", "bun:sqlite"],
+  serverExternalPackages: ["pdf-parse", "pdfkit", "drizzle-orm", "bun:sqlite"],
   outputFileTracingIncludes: {
     "/api/resume": [
       "./node_modules/pdf-parse/**",

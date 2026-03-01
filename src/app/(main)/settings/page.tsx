@@ -10,6 +10,7 @@ import Grid from "@mui/material/Grid2";
 import LoadingState from "@/components/common/LoadingState";
 import ProfileInfoFields from "@/components/settings/ProfileInfoFields";
 import ResumeUploadSection from "@/components/settings/ResumeUploadSection";
+import CoverLetterSettingsSection from "@/components/settings/CoverLetterSettingsSection";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -49,6 +50,8 @@ export default function SettingsPage() {
       <ProfileInfoFields settings={settings} onChange={handleChange} />
 
       <ResumeUploadSection initialResumePath={settings.resume_path || ""} />
+
+      <CoverLetterSettingsSection settings={settings} onChange={handleChange} />
 
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>App Configuration</Typography>
