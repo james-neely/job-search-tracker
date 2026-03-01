@@ -19,11 +19,13 @@
     "@mui/material": "^6.4.0",
     "@mui/material-nextjs": "^6.4.0",
     "@mui/x-date-pickers": "^7.25.0",
+    "@types/pdfkit": "^0.17.5",
     "ai": "^6.0.97",
     "dayjs": "^1.11.0",
     "drizzle-orm": "^0.39.0",
     "next": "^15.2.0",
     "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.17.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "uuid": "^11.0.0"

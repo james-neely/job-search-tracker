@@ -1,5 +1,6 @@
 FROM oven/bun:1 AS base
 WORKDIR /app
+RUN apt-get update && apt-get install -y fonts-freefont-ttf && rm -rf /var/lib/apt/lists/*
 
 # Development stage
 FROM base AS dev
