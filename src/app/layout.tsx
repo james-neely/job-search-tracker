@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     title: "Job Tracker",
     statusBarStyle: "default",
   },
+};
+
+export const viewport: Viewport = {
   themeColor: "#1976d2",
 };
 
