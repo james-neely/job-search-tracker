@@ -18,5 +18,11 @@ sqlite.exec(`
   );
 `);
 
+try {
+  sqlite.exec(`ALTER TABLE applications ADD COLUMN cover_letter_text TEXT;`);
+} catch {
+  // Column already exists
+}
+
 console.log("Database migrations complete.");
 sqlite.close();
