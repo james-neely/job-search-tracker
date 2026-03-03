@@ -28,4 +28,4 @@ COPY --from=build /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
 COPY --from=build /app/node_modules/@napi-rs ./node_modules/@napi-rs
 RUN mkdir -p data/uploads
 EXPOSE 3000
-CMD ["bun", "server.js"]
+CMD ["sh", "-c", "bun run db:push && bun server.js"]
