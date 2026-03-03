@@ -26,6 +26,7 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/node_modules/pdf-parse ./node_modules/pdf-parse
 COPY --from=build /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
 COPY --from=build /app/node_modules/@napi-rs ./node_modules/@napi-rs
+COPY --from=build /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/scripts ./scripts
 RUN mkdir -p data/uploads
