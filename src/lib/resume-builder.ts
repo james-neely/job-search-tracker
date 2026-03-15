@@ -9,6 +9,10 @@ import {
 } from "docx";
 import type { ResumeVersion } from "@/types";
 
+function isShown(value: boolean | undefined) {
+  return value !== false;
+}
+
 function compact(parts: Array<string | null | undefined>) {
   return parts.map((part) => part?.trim()).filter(Boolean) as string[];
 }
@@ -102,7 +106,7 @@ function sortWorkExperience<T extends { startDate?: string | null; endDate?: str
 }
 
 function getResumeExperienceYears(version: ResumeVersion) {
-  const ranges = version.workExperience
+  const ranges = visibleWorkExperienceEntries(version)
     .map((entry) => {
       const start = parseMonth(entry.startDate);
       const end = parseMonth(entry.endDate) ?? new Date();
@@ -125,6 +129,52 @@ function getResumeExperienceYears(version: ResumeVersion) {
 
 function shouldPlaceEducationLast(version: ResumeVersion) {
   return getResumeExperienceYears(version) >= 3;
+}
+
+function visibleEducationEntries(version: ResumeVersion) {
+  return version.education.filter((entry) => isShown(entry.visibilityConfig?.entry));
+}
+
+function visibleWorkExperienceEntries(version: ResumeVersion) {
+  return sortWorkExperience(version.workExperience).filter((entry) =>
+    isShown(entry.visibilityConfig?.entry)
+  );
+}
+
+function visibleProjectEntries(version: ResumeVersion) {
+  return version.projects.filter((entry) => isShown(entry.visibilityConfig?.entry));
+}
+
+function visibleCertificationEntries(version: ResumeVersion) {
+  return version.certifications.filter((entry) => isShown(entry.visibilityConfig?.entry));
+}
+
+function buildEducationHeader(entry: ResumeVersion["education"][number]) {
+  return compact([
+    isShown(entry.visibilityConfig?.schoolName) ? entry.schoolName : null,
+    isShown(entry.visibilityConfig?.degree) ? entry.degree : null,
+  ]).join(" - ") || "Untitled Education";
+}
+
+function buildEducationDateRange(entry: ResumeVersion["education"][number]) {
+  return compact([
+    isShown(entry.visibilityConfig?.startDate) ? entry.startDate : null,
+    isShown(entry.visibilityConfig?.endDate) ? entry.endDate : null,
+  ]).join(" to ");
+}
+
+function buildWorkHeader(entry: ResumeVersion["workExperience"][number]) {
+  const dateRange = compact([
+    isShown(entry.visibilityConfig?.startDate) ? entry.startDate : null,
+    isShown(entry.visibilityConfig?.endDate) ? entry.endDate : null,
+  ]).join(" to ");
+
+  return compact([
+    isShown(entry.visibilityConfig?.roleTitle) ? entry.roleTitle : null,
+    isShown(entry.visibilityConfig?.companyName) ? entry.companyName : null,
+    isShown(entry.visibilityConfig?.location) ? entry.location : null,
+    dateRange,
+  ]).join(" | ") || "Untitled Experience";
 }
 
 function bodyTextRun(text: string, fontSize: number, bold = false) {
@@ -154,11 +204,17 @@ export function renderResumeMarkdown(
   settings: Record<string, string>
 ): string {
   const lines: string[] = [];
-  const workExperience = sortWorkExperience(version.workExperience);
+  const workExperience = visibleWorkExperienceEntries(version);
+  const education = visibleEducationEntries(version);
+  const projects = visibleProjectEntries(version);
+  const certifications = visibleCertificationEntries(version);
   const educationLast = shouldPlaceEducationLast(version);
-  const skillGroups = parseSkillsSection(version.skills);
+  const skillGroups = isShown(version.visibilityConfig?.skills)
+    ? parseSkillsSection(version.skills)
+    : [];
   const name = settings.full_name?.trim() || "Your Name";
   const contact = compact([
+    version.location,
     settings.email,
     settings.phone,
     settings.linkedin_url,
@@ -174,7 +230,7 @@ export function renderResumeMarkdown(
   lines.push("");
   lines.push(`_Resume Version: ${version.title}_`);
   lines.push("");
-  if (version.summary?.trim()) {
+  if (isShown(version.visibilityConfig?.summary) && version.summary?.trim()) {
     addSectionHeading(lines, "Summary");
     lines.push(version.summary.trim());
     lines.push("");
@@ -191,38 +247,38 @@ export function renderResumeMarkdown(
   const appendEducation = () => {
     addSectionHeading(lines, "Education");
 
-    if (version.education.length === 0) {
+    if (education.length === 0) {
       lines.push("_Add education entries to build this resume._");
     } else {
-      for (const entry of version.education) {
-        const header = compact([entry.schoolName, entry.degree]).join(" - ") || "Untitled Education";
-        const dateRange = compact([entry.startDate, entry.endDate]).join(" to ");
+      for (const entry of education) {
+        const header = buildEducationHeader(entry);
+        const dateRange = buildEducationDateRange(entry);
 
         lines.push(`### ${header}`);
-        if (entry.fieldOfStudy) {
+        if (isShown(entry.visibilityConfig?.fieldOfStudy) && entry.fieldOfStudy) {
           lines.push(entry.fieldOfStudy);
         }
-        if (entry.gpa) {
+        if (isShown(entry.visibilityConfig?.gpa) && entry.gpa) {
           lines.push(`GPA: ${entry.gpa}`);
         }
         if (dateRange) {
           lines.push(dateRange);
         }
-        if (entry.courses) {
+        if (isShown(entry.visibilityConfig?.courses) && entry.courses) {
           lines.push("");
           lines.push("Courses:");
           for (const bullet of parseBulletLines(entry.courses)) {
             lines.push(`- ${bullet}`);
           }
         }
-        if (entry.awardsHonors) {
+        if (isShown(entry.visibilityConfig?.awardsHonors) && entry.awardsHonors) {
           lines.push("");
           lines.push("Awards & Honors:");
           for (const bullet of parseBulletLines(entry.awardsHonors)) {
             lines.push(`- ${bullet}`);
           }
         }
-        if (entry.description) {
+        if (isShown(entry.visibilityConfig?.description) && entry.description) {
           lines.push("");
           for (const bullet of parseBulletLines(entry.description)) {
             lines.push(`- ${bullet}`);
@@ -233,12 +289,11 @@ export function renderResumeMarkdown(
     }
   };
 
-  if (workExperience.length > 0) {
+  if (isShown(version.visibilityConfig?.workExperience) && workExperience.length > 0) {
     addSectionHeading(lines, "Work Experience");
     for (const entry of workExperience) {
-      const dateRange = compact([entry.startDate, entry.endDate]).join(" to ");
-      const header = compact([entry.roleTitle, entry.companyName, entry.location, dateRange]).join(" | ") || "Untitled Experience";
-      const bullets = parseBulletLines(entry.bullets);
+      const header = buildWorkHeader(entry);
+      const bullets = isShown(entry.visibilityConfig?.bullets) ? parseBulletLines(entry.bullets) : [];
       lines.push(`### ${header}`);
       if (bullets.length > 0) {
         lines.push("");
@@ -250,13 +305,13 @@ export function renderResumeMarkdown(
     }
   }
 
-  if (version.projects.length > 0) {
+  if (isShown(version.visibilityConfig?.projects) && projects.length > 0) {
     addSectionHeading(lines, "Projects");
-    for (const entry of version.projects) {
-      lines.push(`### ${entry.name || "Untitled Project"}`);
-      if (entry.link) lines.push(entry.link);
-      if (entry.technologies) lines.push(`Technologies: ${entry.technologies}`);
-      if (entry.description) {
+    for (const entry of projects) {
+      lines.push(`### ${(isShown(entry.visibilityConfig?.name) ? entry.name : "") || "Untitled Project"}`);
+      if (isShown(entry.visibilityConfig?.link) && entry.link) lines.push(entry.link);
+      if (isShown(entry.visibilityConfig?.technologies) && entry.technologies) lines.push(`Technologies: ${entry.technologies}`);
+      if (isShown(entry.visibilityConfig?.description) && entry.description) {
         lines.push("");
         lines.push(entry.description);
       }
@@ -264,21 +319,27 @@ export function renderResumeMarkdown(
     }
   }
 
-  if (!educationLast) {
+  if (isShown(version.visibilityConfig?.education) && !educationLast) {
     appendEducation();
   }
 
-  if (version.certifications.length > 0) {
+  if (isShown(version.visibilityConfig?.certifications) && certifications.length > 0) {
     addSectionHeading(lines, "Certifications");
-    for (const entry of version.certifications) {
-      const meta = compact([entry.issuer, entry.issueDate, entry.credentialId ? `Credential ID: ${entry.credentialId}` : ""]).join(" | ");
-      lines.push(`### ${entry.name || "Untitled Certification"}`);
+    for (const entry of certifications) {
+      const meta = compact([
+        isShown(entry.visibilityConfig?.issuer) ? entry.issuer : null,
+        isShown(entry.visibilityConfig?.issueDate) ? entry.issueDate : null,
+        isShown(entry.visibilityConfig?.credentialId) && entry.credentialId
+          ? `Credential ID: ${entry.credentialId}`
+          : "",
+      ]).join(" | ");
+      lines.push(`### ${(isShown(entry.visibilityConfig?.name) ? entry.name : "") || "Untitled Certification"}`);
       if (meta) lines.push(meta);
       lines.push("");
     }
   }
 
-  if (educationLast) {
+  if (isShown(version.visibilityConfig?.education) && educationLast) {
     appendEducation();
   }
 
@@ -290,11 +351,17 @@ export async function renderResumeDocx(
   settings: Record<string, string>
 ): Promise<Buffer> {
   const children: Paragraph[] = [];
-  const workExperience = sortWorkExperience(version.workExperience);
+  const workExperience = visibleWorkExperienceEntries(version);
+  const education = visibleEducationEntries(version);
+  const projects = visibleProjectEntries(version);
+  const certifications = visibleCertificationEntries(version);
   const educationLast = shouldPlaceEducationLast(version);
-  const skillGroups = parseSkillsSection(version.skills);
+  const skillGroups = isShown(version.visibilityConfig?.skills)
+    ? parseSkillsSection(version.skills)
+    : [];
   const name = settings.full_name?.trim() || "Your Name";
   const contact = compact([
+    version.location,
     settings.email,
     settings.phone,
     settings.linkedin_url,
@@ -319,7 +386,7 @@ export async function renderResumeDocx(
     );
   }
 
-  if (version.summary?.trim()) {
+  if (isShown(version.visibilityConfig?.summary) && version.summary?.trim()) {
     children.push(sectionHeader("SUMMARY", version.fontSize));
     children.push(new Paragraph({ children: [bodyTextRun(version.summary.trim(), version.fontSize)] }));
   }
@@ -341,12 +408,12 @@ export async function renderResumeDocx(
   const appendEducation = () => {
     children.push(sectionHeader("EDUCATION", version.fontSize));
 
-    if (version.education.length === 0) {
+    if (education.length === 0) {
       children.push(new Paragraph({ children: [bodyTextRun("Add education entries to build this resume.", version.fontSize)] }));
     } else {
-      for (const entry of version.education) {
-        const header = compact([entry.schoolName, entry.degree]).join(" - ") || "Untitled Education";
-        const dateRange = compact([entry.startDate, entry.endDate]).join(" to ");
+      for (const entry of education) {
+        const header = buildEducationHeader(entry);
+        const dateRange = buildEducationDateRange(entry);
 
         children.push(
           new Paragraph({
@@ -355,16 +422,16 @@ export async function renderResumeDocx(
           })
         );
 
-        if (entry.fieldOfStudy) {
+        if (isShown(entry.visibilityConfig?.fieldOfStudy) && entry.fieldOfStudy) {
           children.push(new Paragraph({ children: [bodyTextRun(entry.fieldOfStudy, version.fontSize)] }));
         }
-        if (entry.gpa) {
+        if (isShown(entry.visibilityConfig?.gpa) && entry.gpa) {
           children.push(new Paragraph({ children: [bodyTextRun(`GPA: ${entry.gpa}`, version.fontSize)] }));
         }
         if (dateRange) {
           children.push(new Paragraph({ children: [bodyTextRun(dateRange, Math.max(version.fontSize - 1, 8))] }));
         }
-        if (entry.courses) {
+        if (isShown(entry.visibilityConfig?.courses) && entry.courses) {
           children.push(new Paragraph({ children: [bodyTextRun("Courses:", version.fontSize, true)] }));
           for (const bullet of parseBulletLines(entry.courses)) {
             children.push(
@@ -375,7 +442,7 @@ export async function renderResumeDocx(
             );
           }
         }
-        if (entry.awardsHonors) {
+        if (isShown(entry.visibilityConfig?.awardsHonors) && entry.awardsHonors) {
           children.push(new Paragraph({ children: [bodyTextRun("Awards & Honors:", version.fontSize, true)] }));
           for (const bullet of parseBulletLines(entry.awardsHonors)) {
             children.push(
@@ -386,7 +453,7 @@ export async function renderResumeDocx(
             );
           }
         }
-        if (entry.description) {
+        if (isShown(entry.visibilityConfig?.description) && entry.description) {
           for (const bullet of parseBulletLines(entry.description)) {
             children.push(
               new Paragraph({
@@ -400,12 +467,11 @@ export async function renderResumeDocx(
     }
   };
 
-  if (workExperience.length > 0) {
+  if (isShown(version.visibilityConfig?.workExperience) && workExperience.length > 0) {
     children.push(sectionHeader("WORK EXPERIENCE", version.fontSize));
     for (const entry of workExperience) {
-      const dateRange = compact([entry.startDate, entry.endDate]).join(" to ");
-      const header = compact([entry.roleTitle, entry.companyName, entry.location, dateRange]).join(" | ") || "Untitled Experience";
-      const bullets = parseBulletLines(entry.bullets);
+      const header = buildWorkHeader(entry);
+      const bullets = isShown(entry.visibilityConfig?.bullets) ? parseBulletLines(entry.bullets) : [];
       children.push(new Paragraph({ spacing: { before: 120 }, children: [bodyTextRun(header, version.fontSize + 1, true)] }));
       for (const bullet of bullets) {
         children.push(
@@ -418,30 +484,36 @@ export async function renderResumeDocx(
     }
   }
 
-  if (version.projects.length > 0) {
+  if (isShown(version.visibilityConfig?.projects) && projects.length > 0) {
     children.push(sectionHeader("PROJECTS", version.fontSize));
-    for (const entry of version.projects) {
-      children.push(new Paragraph({ spacing: { before: 120 }, children: [bodyTextRun(entry.name || "Untitled Project", version.fontSize + 1, true)] }));
-      if (entry.link) children.push(new Paragraph({ children: [bodyTextRun(entry.link, Math.max(version.fontSize - 1, 8))] }));
-      if (entry.technologies) children.push(new Paragraph({ children: [bodyTextRun(`Technologies: ${entry.technologies}`, version.fontSize)] }));
-      if (entry.description) children.push(new Paragraph({ children: [bodyTextRun(entry.description, version.fontSize)] }));
+    for (const entry of projects) {
+      children.push(new Paragraph({ spacing: { before: 120 }, children: [bodyTextRun((isShown(entry.visibilityConfig?.name) ? entry.name : "") || "Untitled Project", version.fontSize + 1, true)] }));
+      if (isShown(entry.visibilityConfig?.link) && entry.link) children.push(new Paragraph({ children: [bodyTextRun(entry.link, Math.max(version.fontSize - 1, 8))] }));
+      if (isShown(entry.visibilityConfig?.technologies) && entry.technologies) children.push(new Paragraph({ children: [bodyTextRun(`Technologies: ${entry.technologies}`, version.fontSize)] }));
+      if (isShown(entry.visibilityConfig?.description) && entry.description) children.push(new Paragraph({ children: [bodyTextRun(entry.description, version.fontSize)] }));
     }
   }
 
-  if (!educationLast) {
+  if (isShown(version.visibilityConfig?.education) && !educationLast) {
     appendEducation();
   }
 
-  if (version.certifications.length > 0) {
+  if (isShown(version.visibilityConfig?.certifications) && certifications.length > 0) {
     children.push(sectionHeader("CERTIFICATIONS", version.fontSize));
-    for (const entry of version.certifications) {
-      const meta = compact([entry.issuer, entry.issueDate, entry.credentialId ? `Credential ID: ${entry.credentialId}` : ""]).join(" | ");
-      children.push(new Paragraph({ spacing: { before: 120 }, children: [bodyTextRun(entry.name || "Untitled Certification", version.fontSize + 1, true)] }));
+    for (const entry of certifications) {
+      const meta = compact([
+        isShown(entry.visibilityConfig?.issuer) ? entry.issuer : null,
+        isShown(entry.visibilityConfig?.issueDate) ? entry.issueDate : null,
+        isShown(entry.visibilityConfig?.credentialId) && entry.credentialId
+          ? `Credential ID: ${entry.credentialId}`
+          : "",
+      ]).join(" | ");
+      children.push(new Paragraph({ spacing: { before: 120 }, children: [bodyTextRun((isShown(entry.visibilityConfig?.name) ? entry.name : "") || "Untitled Certification", version.fontSize + 1, true)] }));
       if (meta) children.push(new Paragraph({ children: [bodyTextRun(meta, version.fontSize)] }));
     }
   }
 
-  if (educationLast) {
+  if (isShown(version.visibilityConfig?.education) && educationLast) {
     appendEducation();
   }
 
@@ -470,11 +542,17 @@ export async function renderResumePdf(
   version: ResumeVersion,
   settings: Record<string, string>
 ): Promise<Buffer> {
-  const workExperience = sortWorkExperience(version.workExperience);
+  const workExperience = visibleWorkExperienceEntries(version);
+  const education = visibleEducationEntries(version);
+  const projects = visibleProjectEntries(version);
+  const certifications = visibleCertificationEntries(version);
   const educationLast = shouldPlaceEducationLast(version);
-  const skillGroups = parseSkillsSection(version.skills);
+  const skillGroups = isShown(version.visibilityConfig?.skills)
+    ? parseSkillsSection(version.skills)
+    : [];
   const name = settings.full_name?.trim() || "Your Name";
   const contact = compact([
+    version.location,
     settings.email,
     settings.phone,
     settings.linkedin_url,
@@ -511,7 +589,7 @@ export async function renderResumePdf(
     doc.moveDown(0.5);
   };
 
-  if (version.summary?.trim()) {
+  if (isShown(version.visibilityConfig?.summary) && version.summary?.trim()) {
     addPdfSectionHeader("SUMMARY");
     doc.font("ocr-a").fontSize(version.fontSize).text(version.summary.trim());
   }
@@ -533,37 +611,37 @@ export async function renderResumePdf(
   const appendEducation = () => {
     addPdfSectionHeader("EDUCATION");
 
-    if (version.education.length === 0) {
+    if (education.length === 0) {
       doc.font("ocr-a").fontSize(version.fontSize).text("Add education entries to build this resume.");
     } else {
-      for (const entry of version.education) {
-        const header = compact([entry.schoolName, entry.degree]).join(" - ") || "Untitled Education";
-        const dateRange = compact([entry.startDate, entry.endDate]).join(" to ");
+      for (const entry of education) {
+        const header = buildEducationHeader(entry);
+        const dateRange = buildEducationDateRange(entry);
 
         doc.font("ocr-b").fontSize(version.fontSize + 1).text(header);
-        if (entry.fieldOfStudy) {
+        if (isShown(entry.visibilityConfig?.fieldOfStudy) && entry.fieldOfStudy) {
           doc.font("ocr-a").fontSize(version.fontSize).text(entry.fieldOfStudy);
         }
-        if (entry.gpa) {
+        if (isShown(entry.visibilityConfig?.gpa) && entry.gpa) {
           doc.font("ocr-a").fontSize(version.fontSize).text(`GPA: ${entry.gpa}`);
         }
         if (dateRange) {
           doc.font("ocr-a").fontSize(Math.max(version.fontSize - 1, 8)).fillColor("gray").text(dateRange);
           doc.fillColor("black");
         }
-        if (entry.courses) {
+        if (isShown(entry.visibilityConfig?.courses) && entry.courses) {
           doc.font("ocr-b").fontSize(version.fontSize).text("Courses:");
           for (const bullet of parseBulletLines(entry.courses)) {
             doc.font("ocr-a").fontSize(version.fontSize).text(`- ${bullet}`, { indent: 12 });
           }
         }
-        if (entry.awardsHonors) {
+        if (isShown(entry.visibilityConfig?.awardsHonors) && entry.awardsHonors) {
           doc.font("ocr-b").fontSize(version.fontSize).text("Awards & Honors:");
           for (const bullet of parseBulletLines(entry.awardsHonors)) {
             doc.font("ocr-a").fontSize(version.fontSize).text(`- ${bullet}`, { indent: 12 });
           }
         }
-        if (entry.description) {
+        if (isShown(entry.visibilityConfig?.description) && entry.description) {
           for (const bullet of parseBulletLines(entry.description)) {
             doc.font("ocr-a").fontSize(version.fontSize).text(`- ${bullet}`, { indent: 12 });
           }
@@ -573,12 +651,11 @@ export async function renderResumePdf(
     }
   };
 
-  if (workExperience.length > 0) {
+  if (isShown(version.visibilityConfig?.workExperience) && workExperience.length > 0) {
     addPdfSectionHeader("WORK EXPERIENCE");
     for (const entry of workExperience) {
-      const dateRange = compact([entry.startDate, entry.endDate]).join(" to ");
-      const header = compact([entry.roleTitle, entry.companyName, entry.location, dateRange]).join(" | ") || "Untitled Experience";
-      const bullets = parseBulletLines(entry.bullets);
+      const header = buildWorkHeader(entry);
+      const bullets = isShown(entry.visibilityConfig?.bullets) ? parseBulletLines(entry.bullets) : [];
       doc.font("ocr-b").fontSize(version.fontSize + 1).text(header);
       for (const bullet of bullets) {
         doc.font("ocr-a").fontSize(version.fontSize).text(`- ${bullet}`, {
@@ -589,32 +666,38 @@ export async function renderResumePdf(
     }
   }
 
-  if (version.projects.length > 0) {
+  if (isShown(version.visibilityConfig?.projects) && projects.length > 0) {
     addPdfSectionHeader("PROJECTS");
-    for (const entry of version.projects) {
-      doc.font("ocr-b").fontSize(version.fontSize + 1).text(entry.name || "Untitled Project");
-      if (entry.link) doc.font("ocr-a").fontSize(Math.max(version.fontSize - 1, 8)).text(entry.link);
-      if (entry.technologies) doc.font("ocr-a").fontSize(version.fontSize).text(`Technologies: ${entry.technologies}`);
-      if (entry.description) doc.font("ocr-a").fontSize(version.fontSize).text(entry.description);
+    for (const entry of projects) {
+      doc.font("ocr-b").fontSize(version.fontSize + 1).text((isShown(entry.visibilityConfig?.name) ? entry.name : "") || "Untitled Project");
+      if (isShown(entry.visibilityConfig?.link) && entry.link) doc.font("ocr-a").fontSize(Math.max(version.fontSize - 1, 8)).text(entry.link);
+      if (isShown(entry.visibilityConfig?.technologies) && entry.technologies) doc.font("ocr-a").fontSize(version.fontSize).text(`Technologies: ${entry.technologies}`);
+      if (isShown(entry.visibilityConfig?.description) && entry.description) doc.font("ocr-a").fontSize(version.fontSize).text(entry.description);
       doc.moveDown(0.8);
     }
   }
 
-  if (!educationLast) {
+  if (isShown(version.visibilityConfig?.education) && !educationLast) {
     appendEducation();
   }
 
-  if (version.certifications.length > 0) {
+  if (isShown(version.visibilityConfig?.certifications) && certifications.length > 0) {
     addPdfSectionHeader("CERTIFICATIONS");
-    for (const entry of version.certifications) {
-      const meta = compact([entry.issuer, entry.issueDate, entry.credentialId ? `Credential ID: ${entry.credentialId}` : ""]).join(" | ");
-      doc.font("ocr-b").fontSize(version.fontSize + 1).text(entry.name || "Untitled Certification");
+    for (const entry of certifications) {
+      const meta = compact([
+        isShown(entry.visibilityConfig?.issuer) ? entry.issuer : null,
+        isShown(entry.visibilityConfig?.issueDate) ? entry.issueDate : null,
+        isShown(entry.visibilityConfig?.credentialId) && entry.credentialId
+          ? `Credential ID: ${entry.credentialId}`
+          : "",
+      ]).join(" | ");
+      doc.font("ocr-b").fontSize(version.fontSize + 1).text((isShown(entry.visibilityConfig?.name) ? entry.name : "") || "Untitled Certification");
       if (meta) doc.font("ocr-a").fontSize(version.fontSize).text(meta);
       doc.moveDown(0.8);
     }
   }
 
-  if (educationLast) {
+  if (isShown(version.visibilityConfig?.education) && educationLast) {
     appendEducation();
   }
 

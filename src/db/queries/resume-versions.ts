@@ -9,6 +9,19 @@ import {
 } from "@/db/schema";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import {
+  DEFAULT_RESUME_CERTIFICATION_VISIBILITY,
+  DEFAULT_RESUME_EDUCATION_VISIBILITY,
+  DEFAULT_RESUME_PROJECT_VISIBILITY,
+  DEFAULT_RESUME_SECTION_VISIBILITY,
+  DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY,
+  parseResumeCertificationVisibility,
+  parseResumeEducationVisibility,
+  parseResumeProjectVisibility,
+  parseResumeSectionVisibility,
+  parseResumeWorkExperienceVisibility,
+  serializeVisibilityConfig,
+} from "@/lib/resume-visibility";
 
 export interface ResumeEducationInput {
   schoolName: string;
@@ -20,6 +33,7 @@ export interface ResumeEducationInput {
   startDate: string;
   endDate: string;
   description: string;
+  visibilityConfig: typeof DEFAULT_RESUME_EDUCATION_VISIBILITY;
 }
 
 export interface ResumeWorkExperienceInput {
@@ -29,6 +43,7 @@ export interface ResumeWorkExperienceInput {
   startDate: string;
   endDate: string;
   bullets: string;
+  visibilityConfig: typeof DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY;
 }
 
 export interface ResumeProjectInput {
@@ -36,6 +51,7 @@ export interface ResumeProjectInput {
   link: string;
   technologies: string;
   description: string;
+  visibilityConfig: typeof DEFAULT_RESUME_PROJECT_VISIBILITY;
 }
 
 export interface ResumeCertificationInput {
@@ -43,13 +59,16 @@ export interface ResumeCertificationInput {
   issuer: string;
   issueDate: string;
   credentialId: string;
+  visibilityConfig: typeof DEFAULT_RESUME_CERTIFICATION_VISIBILITY;
 }
 
 export interface ResumeVersionWithDetails {
   id: string;
   title: string;
+  location: string | null;
   summary: string | null;
   skills: string | null;
+  visibilityConfig: typeof DEFAULT_RESUME_SECTION_VISIBILITY;
   isMain: boolean;
   applicationId: number | null;
   parentVersionId: string | null;
@@ -70,6 +89,7 @@ export interface ResumeVersionWithDetails {
     startDate: string | null;
     endDate: string | null;
     description: string | null;
+    visibilityConfig: typeof DEFAULT_RESUME_EDUCATION_VISIBILITY;
     createdAt: string;
   }>;
   workExperience: Array<{
@@ -81,6 +101,7 @@ export interface ResumeVersionWithDetails {
     startDate: string | null;
     endDate: string | null;
     bullets: string | null;
+    visibilityConfig: typeof DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY;
     createdAt: string;
   }>;
   projects: Array<{
@@ -90,6 +111,7 @@ export interface ResumeVersionWithDetails {
     link: string | null;
     technologies: string | null;
     description: string | null;
+    visibilityConfig: typeof DEFAULT_RESUME_PROJECT_VISIBILITY;
     createdAt: string;
   }>;
   certifications: Array<{
@@ -99,6 +121,7 @@ export interface ResumeVersionWithDetails {
     issuer: string | null;
     issueDate: string | null;
     credentialId: string | null;
+    visibilityConfig: typeof DEFAULT_RESUME_CERTIFICATION_VISIBILITY;
     createdAt: string;
   }>;
   documents: Array<{
@@ -126,8 +149,10 @@ export async function listResumeVersions(): Promise<ResumeVersionWithDetails[]> 
       id: resumeVersions.id,
       publicId: resumeVersions.publicId,
       title: resumeVersions.title,
+      location: resumeVersions.location,
       summary: resumeVersions.summary,
       skills: resumeVersions.skills,
+      visibilityConfig: resumeVersions.visibilityConfig,
       isMain: resumeVersions.isMain,
       applicationId: resumeVersions.applicationId,
       parentVersionId: resumeVersions.parentVersionId,
@@ -199,25 +224,37 @@ export async function listResumeVersions(): Promise<ResumeVersionWithDetails[]> 
 
   for (const entry of educationEntries) {
     const list = educationByVersion.get(entry.resumeVersionId) ?? [];
-    list.push(entry);
+    list.push({
+      ...entry,
+      visibilityConfig: parseResumeEducationVisibility(entry.visibilityConfig),
+    });
     educationByVersion.set(entry.resumeVersionId, list);
   }
 
   for (const entry of workExperiences) {
     const list = workExperienceByVersion.get(entry.resumeVersionId) ?? [];
-    list.push(entry);
+    list.push({
+      ...entry,
+      visibilityConfig: parseResumeWorkExperienceVisibility(entry.visibilityConfig),
+    });
     workExperienceByVersion.set(entry.resumeVersionId, list);
   }
 
   for (const entry of projects) {
     const list = projectsByVersion.get(entry.resumeVersionId) ?? [];
-    list.push(entry);
+    list.push({
+      ...entry,
+      visibilityConfig: parseResumeProjectVisibility(entry.visibilityConfig),
+    });
     projectsByVersion.set(entry.resumeVersionId, list);
   }
 
   for (const entry of certifications) {
     const list = certificationsByVersion.get(entry.resumeVersionId) ?? [];
-    list.push(entry);
+    list.push({
+      ...entry,
+      visibilityConfig: parseResumeCertificationVisibility(entry.visibilityConfig),
+    });
     certificationsByVersion.set(entry.resumeVersionId, list);
   }
 
@@ -230,8 +267,10 @@ export async function listResumeVersions(): Promise<ResumeVersionWithDetails[]> 
   return versions.map((version) => ({
     id: version.publicId,
     title: version.title,
+    location: version.location,
     summary: version.summary,
     skills: version.skills,
+    visibilityConfig: parseResumeSectionVisibility(version.visibilityConfig),
     isMain: version.isMain,
     applicationId: version.applicationId,
     parentVersionId: version.parentVersionId ? (parentPublicIds.get(version.parentVersionId) ?? null) : null,
@@ -260,7 +299,7 @@ export async function createResumeVersion(
 ) {
   let parentConfig: Pick<
     ResumeVersionWithDetails,
-    "fontSize" | "margin" | "summary" | "skills"
+    "fontSize" | "margin" | "location" | "summary" | "skills" | "visibilityConfig"
   > | null = null;
   let parentRowId: number | null = null;
 
@@ -269,6 +308,8 @@ export async function createResumeVersion(
     parentConfig = parent ? {
       summary: parent.summary,
       skills: parent.skills,
+      location: parent.location,
+      visibilityConfig: parseResumeSectionVisibility(parent.visibilityConfig),
       fontSize: parent.fontSize,
       margin: parent.marginTop,
     } : null;
@@ -280,8 +321,10 @@ export async function createResumeVersion(
     .values({
       publicId: uuidv4(),
       title,
+      location: parentConfig?.location ?? null,
       summary: parentConfig?.summary ?? null,
       skills: parentConfig?.skills ?? null,
+      visibilityConfig: serializeVisibilityConfig(parentConfig?.visibilityConfig ?? DEFAULT_RESUME_SECTION_VISIBILITY),
       isMain: false,
       applicationId: options?.applicationId ?? null,
       parentVersionId: parentRowId,
@@ -316,6 +359,7 @@ export async function createResumeVersion(
           startDate: entry.startDate,
           endDate: entry.endDate,
           description: entry.description,
+          visibilityConfig: entry.visibilityConfig,
         }))
       );
     }
@@ -349,6 +393,7 @@ export async function createResumeVersion(
           startDate: entry.startDate,
           endDate: entry.endDate,
           bullets: entry.bullets,
+          visibilityConfig: entry.visibilityConfig,
         }))
       );
     }
@@ -362,6 +407,7 @@ export async function createResumeVersion(
           link: entry.link,
           technologies: entry.technologies,
           description: entry.description,
+          visibilityConfig: entry.visibilityConfig,
         }))
       );
     }
@@ -375,6 +421,7 @@ export async function createResumeVersion(
           issuer: entry.issuer,
           issueDate: entry.issueDate,
           credentialId: entry.credentialId,
+          visibilityConfig: entry.visibilityConfig,
         }))
       );
     }
@@ -387,8 +434,10 @@ export async function updateResumeVersion(
   versionId: string,
   data: {
     title: string;
+    location: string;
     summary: string;
     skills: string;
+    visibilityConfig: typeof DEFAULT_RESUME_SECTION_VISIBILITY;
     fontSize: number;
     margin: number;
     education: ResumeEducationInput[];
@@ -406,8 +455,10 @@ export async function updateResumeVersion(
     .update(resumeVersions)
     .set({
       title: data.title,
+      location: data.location || null,
       summary: data.summary || null,
       skills: data.skills || null,
+      visibilityConfig: serializeVisibilityConfig(data.visibilityConfig),
       fontSize: data.fontSize,
       marginTop: data.margin,
       marginRight: data.margin,
@@ -436,6 +487,7 @@ export async function updateResumeVersion(
         startDate: entry.startDate || null,
         endDate: entry.endDate || null,
         description: entry.description || null,
+        visibilityConfig: serializeVisibilityConfig(entry.visibilityConfig),
       }))
     );
   }
@@ -451,6 +503,7 @@ export async function updateResumeVersion(
         startDate: entry.startDate || null,
         endDate: entry.endDate || null,
         bullets: entry.bullets || null,
+        visibilityConfig: serializeVisibilityConfig(entry.visibilityConfig),
       }))
     );
   }
@@ -464,6 +517,7 @@ export async function updateResumeVersion(
         link: entry.link || null,
         technologies: entry.technologies || null,
         description: entry.description || null,
+        visibilityConfig: serializeVisibilityConfig(entry.visibilityConfig),
       }))
     );
   }
@@ -477,6 +531,7 @@ export async function updateResumeVersion(
         issuer: entry.issuer || null,
         issueDate: entry.issueDate || null,
         credentialId: entry.credentialId || null,
+        visibilityConfig: serializeVisibilityConfig(entry.visibilityConfig),
       }))
     );
   }

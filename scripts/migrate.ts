@@ -38,8 +38,10 @@ sqlite.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     public_id TEXT NOT NULL,
     title TEXT NOT NULL,
+    location TEXT,
     summary TEXT,
     skills TEXT,
+    visibility_config TEXT NOT NULL DEFAULT '{}',
     is_main INTEGER NOT NULL DEFAULT 0,
     application_id INTEGER REFERENCES applications(id) ON DELETE SET NULL,
     parent_version_id INTEGER REFERENCES resume_versions(id) ON DELETE SET NULL,
@@ -67,6 +69,7 @@ sqlite.exec(`
     start_date TEXT,
     end_date TEXT,
     description TEXT,
+    visibility_config TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
@@ -93,6 +96,7 @@ sqlite.exec(`
     start_date TEXT,
     end_date TEXT,
     bullets TEXT,
+    visibility_config TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
@@ -106,6 +110,7 @@ sqlite.exec(`
     link TEXT,
     technologies TEXT,
     description TEXT,
+    visibility_config TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
@@ -119,6 +124,7 @@ sqlite.exec(`
     issuer TEXT,
     issue_date TEXT,
     credential_id TEXT,
+    visibility_config TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
@@ -160,9 +166,11 @@ for (const statement of [
 
 for (const statement of [
   `ALTER TABLE resume_versions ADD COLUMN public_id TEXT;`,
+  `ALTER TABLE resume_versions ADD COLUMN location TEXT;`,
   `ALTER TABLE resume_versions ADD COLUMN font_size REAL NOT NULL DEFAULT 11;`,
   `ALTER TABLE resume_versions ADD COLUMN summary TEXT;`,
   `ALTER TABLE resume_versions ADD COLUMN skills TEXT;`,
+  `ALTER TABLE resume_versions ADD COLUMN visibility_config TEXT NOT NULL DEFAULT '{}';`,
   `ALTER TABLE resume_versions ADD COLUMN is_main INTEGER NOT NULL DEFAULT 0;`,
   `ALTER TABLE resume_versions ADD COLUMN application_id INTEGER REFERENCES applications(id) ON DELETE SET NULL;`,
   `ALTER TABLE resume_versions ADD COLUMN margin_top REAL NOT NULL DEFAULT 0.75;`,
@@ -172,6 +180,10 @@ for (const statement of [
   `ALTER TABLE resume_education_entries ADD COLUMN gpa TEXT;`,
   `ALTER TABLE resume_education_entries ADD COLUMN courses TEXT;`,
   `ALTER TABLE resume_education_entries ADD COLUMN awards_honors TEXT;`,
+  `ALTER TABLE resume_education_entries ADD COLUMN visibility_config TEXT NOT NULL DEFAULT '{}';`,
+  `ALTER TABLE resume_work_experiences ADD COLUMN visibility_config TEXT NOT NULL DEFAULT '{}';`,
+  `ALTER TABLE resume_projects ADD COLUMN visibility_config TEXT NOT NULL DEFAULT '{}';`,
+  `ALTER TABLE resume_certifications ADD COLUMN visibility_config TEXT NOT NULL DEFAULT '{}';`,
 ]) {
   try {
     sqlite.exec(statement);

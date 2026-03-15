@@ -6,8 +6,10 @@ export const resumeVersions = sqliteTable("resume_versions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   publicId: text("public_id").notNull(),
   title: text("title").notNull(),
+  location: text("location"),
   summary: text("summary"),
   skills: text("skills"),
+  visibilityConfig: text("visibility_config").notNull().default("{}"),
   isMain: integer("is_main", { mode: "boolean" }).notNull().default(false),
   applicationId: integer("application_id").references(() => applications.id, {
     onDelete: "set null",

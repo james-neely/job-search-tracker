@@ -12,5 +12,6 @@ export const resumeProjects = sqliteTable("resume_projects", {
   link: text("link"),
   technologies: text("technologies"),
   description: text("description"),
+  visibilityConfig: text("visibility_config").notNull().default("{}"),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });

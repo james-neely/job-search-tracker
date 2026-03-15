@@ -75,6 +75,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
 Audit the provided resume against the target application and return structured analysis.
 Identify the most important ATS keywords from the job description, then classify each as matched or missing in the resume.
 Matched and missing keywords must not overlap.
+Treat any section or field with visibilityConfig set to false as intentionally hidden from the current resume output.
 Provide practical section-level feedback for summary, skills, work experience, projects, and education.
 Flag formatting or ATS risks only when they are real.
 Never use em-dashes or en-dashes, use commas, periods, colons, or other punctuation instead.`,

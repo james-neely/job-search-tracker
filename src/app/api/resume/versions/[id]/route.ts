@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getResumeVersion, updateResumeVersion } from "@/db/queries/resume-versions";
 import { getAllSettings, upsertSetting } from "@/db/queries/settings";
 import { renderResumeMarkdown } from "@/lib/resume-builder";
+import {
+  DEFAULT_RESUME_CERTIFICATION_VISIBILITY,
+  DEFAULT_RESUME_EDUCATION_VISIBILITY,
+  DEFAULT_RESUME_PROJECT_VISIBILITY,
+  DEFAULT_RESUME_SECTION_VISIBILITY,
+  DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY,
+} from "@/lib/resume-visibility";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -32,6 +39,7 @@ function normalizeEducation(entries: unknown[]) {
       startDate: typeof value.startDate === "string" ? value.startDate : "",
       endDate: typeof value.endDate === "string" ? value.endDate : "",
       description: typeof value.description === "string" ? value.description : "",
+      visibilityConfig: normalizeVisibilityConfig(value.visibilityConfig, DEFAULT_RESUME_EDUCATION_VISIBILITY),
     };
   });
 }
@@ -46,6 +54,7 @@ function normalizeWorkExperience(entries: unknown[]) {
       startDate: typeof value.startDate === "string" ? value.startDate : "",
       endDate: typeof value.endDate === "string" ? value.endDate : "",
       bullets: typeof value.bullets === "string" ? value.bullets : "",
+      visibilityConfig: normalizeVisibilityConfig(value.visibilityConfig, DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY),
     };
   });
 }
@@ -58,6 +67,7 @@ function normalizeProjects(entries: unknown[]) {
       link: typeof value.link === "string" ? value.link : "",
       technologies: typeof value.technologies === "string" ? value.technologies : "",
       description: typeof value.description === "string" ? value.description : "",
+      visibilityConfig: normalizeVisibilityConfig(value.visibilityConfig, DEFAULT_RESUME_PROJECT_VISIBILITY),
     };
   });
 }
@@ -70,8 +80,22 @@ function normalizeCertifications(entries: unknown[]) {
       issuer: typeof value.issuer === "string" ? value.issuer : "",
       issueDate: typeof value.issueDate === "string" ? value.issueDate : "",
       credentialId: typeof value.credentialId === "string" ? value.credentialId : "",
+      visibilityConfig: normalizeVisibilityConfig(value.visibilityConfig, DEFAULT_RESUME_CERTIFICATION_VISIBILITY),
     };
   });
+}
+
+function normalizeVisibilityConfig<T extends Record<string, boolean>>(value: unknown, defaults: T): T {
+  const source = typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+  const normalized = {} as T;
+
+  for (const [key, defaultValue] of Object.entries(defaults)) {
+    normalized[key as keyof T] = typeof source[key] === "boolean"
+      ? source[key] as T[keyof T]
+      : defaultValue as T[keyof T];
+  }
+
+  return normalized;
 }
 
 function normalizeNumber(value: unknown, fallback: number, min: number, max: number) {
@@ -103,8 +127,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const body = await request.json();
   const title = typeof body.title === "string" && body.title.trim() ? body.title.trim() : "Untitled Resume";
+  const location = typeof body.location === "string" ? body.location : "";
   const summary = typeof body.summary === "string" ? body.summary : "";
   const skills = typeof body.skills === "string" ? body.skills : "";
+  const visibilityConfig = normalizeVisibilityConfig(body.visibilityConfig, DEFAULT_RESUME_SECTION_VISIBILITY);
   const education = Array.isArray(body.education) ? normalizeEducation(body.education) : [];
   const workExperience = Array.isArray(body.workExperience) ? normalizeWorkExperience(body.workExperience) : [];
   const projects = Array.isArray(body.projects) ? normalizeProjects(body.projects) : [];
@@ -114,8 +140,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const version = await updateResumeVersion(id, {
     title,
+    location,
     summary,
     skills,
+    visibilityConfig,
     fontSize,
     margin,
     education,

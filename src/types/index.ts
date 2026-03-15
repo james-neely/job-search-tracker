@@ -1,4 +1,11 @@
 import type { ApplicationStatus } from "@/lib/constants";
+import type {
+  ResumeCertificationVisibilityConfig,
+  ResumeEducationVisibilityConfig,
+  ResumeProjectVisibilityConfig,
+  ResumeSectionVisibilityConfig,
+  ResumeWorkExperienceVisibilityConfig,
+} from "@/lib/resume-visibility";
 
 export type EmploymentType = "full_time" | "part_time" | "contract";
 export type CompensationType = "salary" | "hourly";
@@ -112,6 +119,7 @@ export interface ResumeEducationEntry {
   startDate: string | null;
   endDate: string | null;
   description: string | null;
+  visibilityConfig: ResumeEducationVisibilityConfig;
   createdAt: string;
 }
 
@@ -124,6 +132,7 @@ export interface ResumeWorkExperience {
   startDate: string | null;
   endDate: string | null;
   bullets: string | null;
+  visibilityConfig: ResumeWorkExperienceVisibilityConfig;
   createdAt: string;
 }
 
@@ -134,6 +143,7 @@ export interface ResumeProject {
   link: string | null;
   technologies: string | null;
   description: string | null;
+  visibilityConfig: ResumeProjectVisibilityConfig;
   createdAt: string;
 }
 
@@ -144,6 +154,7 @@ export interface ResumeCertification {
   issuer: string | null;
   issueDate: string | null;
   credentialId: string | null;
+  visibilityConfig: ResumeCertificationVisibilityConfig;
   createdAt: string;
 }
 
@@ -158,8 +169,10 @@ export interface ResumeGeneratedDocument {
 export interface ResumeVersion {
   id: string;
   title: string;
+  location: string | null;
   summary: string | null;
   skills: string | null;
+  visibilityConfig: ResumeSectionVisibilityConfig;
   isMain: boolean;
   applicationId: number | null;
   parentVersionId: string | null;

@@ -30,6 +30,22 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import type {
+  ResumeCertificationVisibilityConfig,
+  ResumeEducationVisibilityConfig,
+  ResumeProjectVisibilityConfig,
+  ResumeSectionVisibilityConfig,
+  ResumeWorkExperienceVisibilityConfig,
+} from "@/lib/resume-visibility";
+import {
+  DEFAULT_RESUME_CERTIFICATION_VISIBILITY,
+  DEFAULT_RESUME_EDUCATION_VISIBILITY,
+  DEFAULT_RESUME_PROJECT_VISIBILITY,
+  DEFAULT_RESUME_SECTION_VISIBILITY,
+  DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY,
+} from "@/lib/resume-visibility";
 
 interface EducationDraft {
   schoolName: string;
@@ -41,6 +57,7 @@ interface EducationDraft {
   startDate: string;
   endDate: string;
   description: string;
+  visibilityConfig: ResumeEducationVisibilityConfig;
 }
 
 interface WorkExperienceDraft {
@@ -50,6 +67,7 @@ interface WorkExperienceDraft {
   startDate: string;
   endDate: string;
   bullets: string;
+  visibilityConfig: ResumeWorkExperienceVisibilityConfig;
 }
 
 interface ProjectDraft {
@@ -57,6 +75,7 @@ interface ProjectDraft {
   link: string;
   technologies: string;
   description: string;
+  visibilityConfig: ResumeProjectVisibilityConfig;
 }
 
 interface CertificationDraft {
@@ -64,12 +83,15 @@ interface CertificationDraft {
   issuer: string;
   issueDate: string;
   credentialId: string;
+  visibilityConfig: ResumeCertificationVisibilityConfig;
 }
 
 interface ResumeDraft {
   title: string;
+  location: string;
   summary: string;
   skills: string;
+  visibilityConfig: ResumeSectionVisibilityConfig;
   fontSize: string;
   margin: string;
   education: EducationDraft[];
@@ -129,6 +151,7 @@ const EMPTY_EDUCATION: EducationDraft = {
   startDate: "",
   endDate: "",
   description: "",
+  visibilityConfig: { ...DEFAULT_RESUME_EDUCATION_VISIBILITY },
 };
 
 const EMPTY_WORK_EXPERIENCE: WorkExperienceDraft = {
@@ -138,6 +161,7 @@ const EMPTY_WORK_EXPERIENCE: WorkExperienceDraft = {
   startDate: "",
   endDate: "",
   bullets: "",
+  visibilityConfig: { ...DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY },
 };
 
 const EMPTY_PROJECT: ProjectDraft = {
@@ -145,6 +169,7 @@ const EMPTY_PROJECT: ProjectDraft = {
   link: "",
   technologies: "",
   description: "",
+  visibilityConfig: { ...DEFAULT_RESUME_PROJECT_VISIBILITY },
 };
 
 const EMPTY_CERTIFICATION: CertificationDraft = {
@@ -152,13 +177,16 @@ const EMPTY_CERTIFICATION: CertificationDraft = {
   issuer: "",
   issueDate: "",
   credentialId: "",
+  visibilityConfig: { ...DEFAULT_RESUME_CERTIFICATION_VISIBILITY },
 };
 
 function createDraft(version: ResumeVersion): ResumeDraft {
   return {
     title: version.title,
+    location: version.location ?? "",
     summary: version.summary ?? "",
     skills: version.skills ?? "",
+    visibilityConfig: { ...(version.visibilityConfig ?? DEFAULT_RESUME_SECTION_VISIBILITY) },
     fontSize: String(version.fontSize),
     margin: String(version.margin),
     education: version.education.map((entry) => ({
@@ -171,6 +199,7 @@ function createDraft(version: ResumeVersion): ResumeDraft {
       startDate: entry.startDate ?? "",
       endDate: entry.endDate ?? "",
       description: entry.description ?? "",
+      visibilityConfig: { ...(entry.visibilityConfig ?? DEFAULT_RESUME_EDUCATION_VISIBILITY) },
     })),
     workExperience: version.workExperience.map((entry) => ({
       companyName: entry.companyName ?? "",
@@ -179,18 +208,21 @@ function createDraft(version: ResumeVersion): ResumeDraft {
       startDate: entry.startDate ?? "",
       endDate: entry.endDate ?? "",
       bullets: entry.bullets ?? "",
+      visibilityConfig: { ...(entry.visibilityConfig ?? DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY) },
     })),
     projects: version.projects.map((entry) => ({
       name: entry.name ?? "",
       link: entry.link ?? "",
       technologies: entry.technologies ?? "",
       description: entry.description ?? "",
+      visibilityConfig: { ...(entry.visibilityConfig ?? DEFAULT_RESUME_PROJECT_VISIBILITY) },
     })),
     certifications: version.certifications.map((entry) => ({
       name: entry.name ?? "",
       issuer: entry.issuer ?? "",
       issueDate: entry.issueDate ?? "",
       credentialId: entry.credentialId ?? "",
+      visibilityConfig: { ...(entry.visibilityConfig ?? DEFAULT_RESUME_CERTIFICATION_VISIBILITY) },
     })),
   };
 }
@@ -279,6 +311,17 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
     updateDraft({ ...draft, [field]: value });
   };
 
+  const handleSectionVisibilityChange = (field: keyof ResumeSectionVisibilityConfig, checked: boolean) => {
+    if (!draft) return;
+    updateDraft({
+      ...draft,
+      visibilityConfig: {
+        ...draft.visibilityConfig,
+        [field]: checked,
+      },
+    });
+  };
+
   const handleEducationChange = (index: number, field: keyof EducationDraft, value: string) => {
     if (!draft) return;
     updateDraft({
@@ -330,6 +373,94 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
   const removeItem = (key: "education" | "workExperience" | "projects" | "certifications", index: number) => {
     if (!draft) return;
     updateDraft({ ...draft, [key]: draft[key].filter((_, entryIndex) => entryIndex !== index) });
+  };
+
+  const handleEducationVisibilityChange = (
+    index: number,
+    field: keyof ResumeEducationVisibilityConfig,
+    checked: boolean
+  ) => {
+    if (!draft) return;
+    updateDraft({
+      ...draft,
+      education: draft.education.map((entry, entryIndex) =>
+        entryIndex === index
+          ? {
+              ...entry,
+              visibilityConfig: {
+                ...entry.visibilityConfig,
+                [field]: checked,
+              },
+            }
+          : entry
+      ),
+    });
+  };
+
+  const handleWorkVisibilityChange = (
+    index: number,
+    field: keyof ResumeWorkExperienceVisibilityConfig,
+    checked: boolean
+  ) => {
+    if (!draft) return;
+    updateDraft({
+      ...draft,
+      workExperience: draft.workExperience.map((entry, entryIndex) =>
+        entryIndex === index
+          ? {
+              ...entry,
+              visibilityConfig: {
+                ...entry.visibilityConfig,
+                [field]: checked,
+              },
+            }
+          : entry
+      ),
+    });
+  };
+
+  const handleProjectVisibilityChange = (
+    index: number,
+    field: keyof ResumeProjectVisibilityConfig,
+    checked: boolean
+  ) => {
+    if (!draft) return;
+    updateDraft({
+      ...draft,
+      projects: draft.projects.map((entry, entryIndex) =>
+        entryIndex === index
+          ? {
+              ...entry,
+              visibilityConfig: {
+                ...entry.visibilityConfig,
+                [field]: checked,
+              },
+            }
+          : entry
+      ),
+    });
+  };
+
+  const handleCertificationVisibilityChange = (
+    index: number,
+    field: keyof ResumeCertificationVisibilityConfig,
+    checked: boolean
+  ) => {
+    if (!draft) return;
+    updateDraft({
+      ...draft,
+      certifications: draft.certifications.map((entry, entryIndex) =>
+        entryIndex === index
+          ? {
+              ...entry,
+              visibilityConfig: {
+                ...entry.visibilityConfig,
+                [field]: checked,
+              },
+            }
+          : entry
+      ),
+    });
   };
 
   const handleSave = useCallback(async (): Promise<ResumeVersion | null> => {
@@ -1026,6 +1157,20 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
     return <Alert severity="error">Resume not found.</Alert>;
   }
 
+  const renderVisibilityToggle = (label: string, checked: boolean, onChange: (checked: boolean) => void) => (
+    <FormControlLabel
+      label={label}
+      control={
+        <Switch
+          size="small"
+          checked={checked}
+          onChange={(_, nextChecked) => onChange(nextChecked)}
+        />
+      }
+      sx={{ m: 0 }}
+    />
+  );
+
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
@@ -1065,6 +1210,16 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
           <Grid size={{ xs: 12 }}>
             <TextField label="Resume Title" fullWidth value={draft.title} onChange={(e) => handleDraftChange("title", e.target.value)} />
           </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              label="Resume Location"
+              fullWidth
+              placeholder="Denver, CO"
+              helperText="Shown in the resume header with your contact info."
+              value={draft.location}
+              onChange={(e) => handleDraftChange("location", e.target.value)}
+            />
+          </Grid>
           <Grid size={{ xs: 12 }}>
             <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
               <TextField
@@ -1074,7 +1229,11 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
                 minRows={3}
                 value={draft.summary}
                 onChange={(e) => handleDraftChange("summary", e.target.value)}
+                helperText={draft.visibilityConfig.summary ? "Shown in output" : "Hidden from output"}
               />
+              {renderVisibilityToggle("Show", draft.visibilityConfig.summary, (checked) =>
+                handleSectionVisibilityChange("summary", checked)
+              )}
               <Button
                 variant="outlined"
                 startIcon={<AutoFixHighIcon />}
@@ -1101,11 +1260,14 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
                 fullWidth
                 multiline
                 minRows={5}
-                helperText="Use one group per line in `Category: skill, skill, skill` format. Example: `Languages: Python, Go, SQL`"
+                helperText={`${draft.visibilityConfig.skills ? "Shown in output." : "Hidden from output."} Use one group per line in \`Category: skill, skill, skill\` format.`}
                 placeholder={"Languages: Python, Go, SQL\nFrameworks/Libraries: React, Next.js, FastAPI\nCloud & DevOps: AWS, Docker, Kubernetes\nDatabases: PostgreSQL, Redis\nTools & Testing: Git, Postman, Jest"}
                 value={draft.skills}
                 onChange={(e) => handleDraftChange("skills", e.target.value)}
               />
+              {renderVisibilityToggle("Show", draft.visibilityConfig.skills, (checked) =>
+                handleSectionVisibilityChange("skills", checked)
+              )}
               <Button
                 variant="outlined"
                 startIcon={<AutoFixHighIcon />}
@@ -1137,13 +1299,39 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
           </Grid>
         </Grid>
 
-        <Typography variant="subtitle1" gutterBottom>Work Experience</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
+          <Typography variant="subtitle1">Work Experience</Typography>
+          {renderVisibilityToggle("Show section", draft.visibilityConfig.workExperience, (checked) =>
+            handleSectionVisibilityChange("workExperience", checked)
+          )}
+        </Box>
         <Stack spacing={2}>
           {draft.workExperience.map((entry, index) => (
             <Paper key={`work-${index}`} variant="outlined" sx={{ p: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 2 }}>
+                <Typography variant="subtitle2">Entry {index + 1}</Typography>
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {renderVisibilityToggle("Show entry", entry.visibilityConfig.entry, (checked) =>
+                    handleWorkVisibilityChange(index, "entry", checked)
+                  )}
+                  {renderVisibilityToggle("Bullets", entry.visibilityConfig.bullets, (checked) =>
+                    handleWorkVisibilityChange(index, "bullets", checked)
+                  )}
+                </Stack>
+              </Box>
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}><TextField label="Company" fullWidth value={entry.companyName} onChange={(e) => handleWorkExperienceChange(index, "companyName", e.target.value)} /></Grid>
-                <Grid size={{ xs: 12, md: 6 }}><TextField label="Role Title" fullWidth value={entry.roleTitle} onChange={(e) => handleWorkExperienceChange(index, "roleTitle", e.target.value)} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField label="Company" fullWidth value={entry.companyName} onChange={(e) => handleWorkExperienceChange(index, "companyName", e.target.value)} />
+                  {renderVisibilityToggle("Show company", entry.visibilityConfig.companyName, (checked) =>
+                    handleWorkVisibilityChange(index, "companyName", checked)
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField label="Role Title" fullWidth value={entry.roleTitle} onChange={(e) => handleWorkExperienceChange(index, "roleTitle", e.target.value)} />
+                  {renderVisibilityToggle("Show role", entry.visibilityConfig.roleTitle, (checked) =>
+                    handleWorkVisibilityChange(index, "roleTitle", checked)
+                  )}
+                </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     label="Location"
@@ -1153,9 +1341,22 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
                     value={entry.location}
                     onChange={(e) => handleWorkExperienceChange(index, "location", e.target.value)}
                   />
+                  {renderVisibilityToggle("Show location", entry.visibilityConfig.location, (checked) =>
+                    handleWorkVisibilityChange(index, "location", checked)
+                  )}
                 </Grid>
-                <Grid size={{ xs: 12, md: 4 }}><TextField label="Start Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.startDate} onChange={(e) => handleWorkExperienceChange(index, "startDate", e.target.value)} /></Grid>
-                <Grid size={{ xs: 12, md: 4 }}><TextField label="End Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.endDate} onChange={(e) => handleWorkExperienceChange(index, "endDate", e.target.value)} /></Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField label="Start Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.startDate} onChange={(e) => handleWorkExperienceChange(index, "startDate", e.target.value)} />
+                  {renderVisibilityToggle("Show start", entry.visibilityConfig.startDate, (checked) =>
+                    handleWorkVisibilityChange(index, "startDate", checked)
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField label="End Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.endDate} onChange={(e) => handleWorkExperienceChange(index, "endDate", e.target.value)} />
+                  {renderVisibilityToggle("Show end", entry.visibilityConfig.endDate, (checked) =>
+                    handleWorkVisibilityChange(index, "endDate", checked)
+                  )}
+                </Grid>
                 <Grid size={{ xs: 12 }}>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
                     <TextField
@@ -1192,14 +1393,44 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
             </Paper>
           ))}
         </Stack>
-        <Box sx={{ mt: 2, mb: 3 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.workExperience, { ...EMPTY_WORK_EXPERIENCE }, "workExperience")}>Add Work Experience</Button></Box>
+        <Box sx={{ mt: 2, mb: 3 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.workExperience, { ...EMPTY_WORK_EXPERIENCE, visibilityConfig: { ...DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY } }, "workExperience")}>Add Work Experience</Button></Box>
 
-        <Typography variant="subtitle1" gutterBottom>Education</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
+          <Typography variant="subtitle1">Education</Typography>
+          {renderVisibilityToggle("Show section", draft.visibilityConfig.education, (checked) =>
+            handleSectionVisibilityChange("education", checked)
+          )}
+        </Box>
         <Stack spacing={2}>
           {draft.education.map((entry, index) => (
             <Paper key={`edu-${index}`} variant="outlined" sx={{ p: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 2 }}>
+                <Typography variant="subtitle2">Entry {index + 1}</Typography>
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {renderVisibilityToggle("Show entry", entry.visibilityConfig.entry, (checked) =>
+                    handleEducationVisibilityChange(index, "entry", checked)
+                  )}
+                  {renderVisibilityToggle("GPA", entry.visibilityConfig.gpa, (checked) =>
+                    handleEducationVisibilityChange(index, "gpa", checked)
+                  )}
+                  {renderVisibilityToggle("Courses", entry.visibilityConfig.courses, (checked) =>
+                    handleEducationVisibilityChange(index, "courses", checked)
+                  )}
+                  {renderVisibilityToggle("Awards", entry.visibilityConfig.awardsHonors, (checked) =>
+                    handleEducationVisibilityChange(index, "awardsHonors", checked)
+                  )}
+                  {renderVisibilityToggle("Description", entry.visibilityConfig.description, (checked) =>
+                    handleEducationVisibilityChange(index, "description", checked)
+                  )}
+                </Stack>
+              </Box>
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}><TextField label="School" fullWidth value={entry.schoolName} onChange={(e) => handleEducationChange(index, "schoolName", e.target.value)} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField label="School" fullWidth value={entry.schoolName} onChange={(e) => handleEducationChange(index, "schoolName", e.target.value)} />
+                  {renderVisibilityToggle("Show school", entry.visibilityConfig.schoolName, (checked) =>
+                    handleEducationVisibilityChange(index, "schoolName", checked)
+                  )}
+                </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     select
@@ -1212,6 +1443,9 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
                       <MenuItem key={option} value={option}>{option}</MenuItem>
                     ))}
                   </TextField>
+                  {renderVisibilityToggle("Show degree", entry.visibilityConfig.degree, (checked) =>
+                    handleEducationVisibilityChange(index, "degree", checked)
+                  )}
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
@@ -1225,6 +1459,9 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
                       <MenuItem key={option} value={option}>{option}</MenuItem>
                     ))}
                   </TextField>
+                  {renderVisibilityToggle("Show field", entry.visibilityConfig.fieldOfStudy, (checked) =>
+                    handleEducationVisibilityChange(index, "fieldOfStudy", checked)
+                  )}
                 </Grid>
                 <Grid size={{ xs: 12, md: 3 }}>
                   <TextField
@@ -1237,8 +1474,18 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
                     slotProps={{ htmlInput: { inputMode: "decimal", pattern: "^(?:[0-3](?:\\.\\d{0,2})?|4(?:\\.0{0,2})?)$" } }}
                   />
                 </Grid>
-                <Grid size={{ xs: 12, md: 3 }}><TextField label="Start Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.startDate} onChange={(e) => handleEducationChange(index, "startDate", e.target.value)} /></Grid>
-                <Grid size={{ xs: 12, md: 3 }}><TextField label="End Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.endDate} onChange={(e) => handleEducationChange(index, "endDate", e.target.value)} /></Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField label="Start Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.startDate} onChange={(e) => handleEducationChange(index, "startDate", e.target.value)} />
+                  {renderVisibilityToggle("Show start", entry.visibilityConfig.startDate, (checked) =>
+                    handleEducationVisibilityChange(index, "startDate", checked)
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField label="End Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.endDate} onChange={(e) => handleEducationChange(index, "endDate", e.target.value)} />
+                  {renderVisibilityToggle("Show end", entry.visibilityConfig.endDate, (checked) =>
+                    handleEducationVisibilityChange(index, "endDate", checked)
+                  )}
+                </Grid>
                 <Grid size={{ xs: 12 }}>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
                     <TextField
@@ -1334,14 +1581,41 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
             </Paper>
           ))}
         </Stack>
-        <Box sx={{ mt: 2, mb: 3 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.education, { ...EMPTY_EDUCATION }, "education")}>Add Education Entry</Button></Box>
+        <Box sx={{ mt: 2, mb: 3 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.education, { ...EMPTY_EDUCATION, visibilityConfig: { ...DEFAULT_RESUME_EDUCATION_VISIBILITY } }, "education")}>Add Education Entry</Button></Box>
 
-        <Typography variant="subtitle1" gutterBottom>Projects</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
+          <Typography variant="subtitle1">Projects</Typography>
+          {renderVisibilityToggle("Show section", draft.visibilityConfig.projects, (checked) =>
+            handleSectionVisibilityChange("projects", checked)
+          )}
+        </Box>
         <Stack spacing={2}>
           {draft.projects.map((entry, index) => (
             <Paper key={`project-${index}`} variant="outlined" sx={{ p: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 2 }}>
+                <Typography variant="subtitle2">Project {index + 1}</Typography>
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {renderVisibilityToggle("Show entry", entry.visibilityConfig.entry, (checked) =>
+                    handleProjectVisibilityChange(index, "entry", checked)
+                  )}
+                  {renderVisibilityToggle("Link", entry.visibilityConfig.link, (checked) =>
+                    handleProjectVisibilityChange(index, "link", checked)
+                  )}
+                  {renderVisibilityToggle("Tech", entry.visibilityConfig.technologies, (checked) =>
+                    handleProjectVisibilityChange(index, "technologies", checked)
+                  )}
+                  {renderVisibilityToggle("Description", entry.visibilityConfig.description, (checked) =>
+                    handleProjectVisibilityChange(index, "description", checked)
+                  )}
+                </Stack>
+              </Box>
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}><TextField label="Project Name" fullWidth value={entry.name} onChange={(e) => handleProjectChange(index, "name", e.target.value)} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField label="Project Name" fullWidth value={entry.name} onChange={(e) => handleProjectChange(index, "name", e.target.value)} />
+                  {renderVisibilityToggle("Show name", entry.visibilityConfig.name, (checked) =>
+                    handleProjectVisibilityChange(index, "name", checked)
+                  )}
+                </Grid>
                 <Grid size={{ xs: 12, md: 6 }}><TextField label="Link" fullWidth value={entry.link} onChange={(e) => handleProjectChange(index, "link", e.target.value)} /></Grid>
                 <Grid size={{ xs: 12 }}>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -1404,14 +1678,41 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
             </Paper>
           ))}
         </Stack>
-        <Box sx={{ mt: 2, mb: 3 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.projects, { ...EMPTY_PROJECT }, "projects")}>Add Project</Button></Box>
+        <Box sx={{ mt: 2, mb: 3 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.projects, { ...EMPTY_PROJECT, visibilityConfig: { ...DEFAULT_RESUME_PROJECT_VISIBILITY } }, "projects")}>Add Project</Button></Box>
 
-        <Typography variant="subtitle1" gutterBottom>Certifications</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
+          <Typography variant="subtitle1">Certifications</Typography>
+          {renderVisibilityToggle("Show section", draft.visibilityConfig.certifications, (checked) =>
+            handleSectionVisibilityChange("certifications", checked)
+          )}
+        </Box>
         <Stack spacing={2}>
           {draft.certifications.map((entry, index) => (
             <Paper key={`cert-${index}`} variant="outlined" sx={{ p: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 2 }}>
+                <Typography variant="subtitle2">Certification {index + 1}</Typography>
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {renderVisibilityToggle("Show entry", entry.visibilityConfig.entry, (checked) =>
+                    handleCertificationVisibilityChange(index, "entry", checked)
+                  )}
+                  {renderVisibilityToggle("Issuer", entry.visibilityConfig.issuer, (checked) =>
+                    handleCertificationVisibilityChange(index, "issuer", checked)
+                  )}
+                  {renderVisibilityToggle("Date", entry.visibilityConfig.issueDate, (checked) =>
+                    handleCertificationVisibilityChange(index, "issueDate", checked)
+                  )}
+                  {renderVisibilityToggle("Credential ID", entry.visibilityConfig.credentialId, (checked) =>
+                    handleCertificationVisibilityChange(index, "credentialId", checked)
+                  )}
+                </Stack>
+              </Box>
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}><TextField label="Certification Name" fullWidth value={entry.name} onChange={(e) => handleCertificationChange(index, "name", e.target.value)} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField label="Certification Name" fullWidth value={entry.name} onChange={(e) => handleCertificationChange(index, "name", e.target.value)} />
+                  {renderVisibilityToggle("Show name", entry.visibilityConfig.name, (checked) =>
+                    handleCertificationVisibilityChange(index, "name", checked)
+                  )}
+                </Grid>
                 <Grid size={{ xs: 12, md: 6 }}><TextField label="Issuer" fullWidth value={entry.issuer} onChange={(e) => handleCertificationChange(index, "issuer", e.target.value)} /></Grid>
                 <Grid size={{ xs: 12, md: 6 }}><TextField label="Issue Date" type="month" fullWidth slotProps={{ inputLabel: { shrink: true } }} value={entry.issueDate} onChange={(e) => handleCertificationChange(index, "issueDate", e.target.value)} /></Grid>
                 <Grid size={{ xs: 12, md: 6 }}><TextField label="Credential ID" fullWidth value={entry.credentialId} onChange={(e) => handleCertificationChange(index, "credentialId", e.target.value)} /></Grid>
@@ -1420,7 +1721,7 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
             </Paper>
           ))}
         </Stack>
-        <Box sx={{ mt: 2 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.certifications, { ...EMPTY_CERTIFICATION }, "certifications")}>Add Certification</Button></Box>
+        <Box sx={{ mt: 2 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem(draft.certifications, { ...EMPTY_CERTIFICATION, visibilityConfig: { ...DEFAULT_RESUME_CERTIFICATION_VISIBILITY } }, "certifications")}>Add Certification</Button></Box>
 
         <Divider sx={{ my: 3 }} />
 

@@ -25,6 +25,7 @@ interface ResumeTailorPanelProps {
 
 interface TailoredResumeResult {
   resumeVersion: ResumeVersion;
+  attachedResumeVersionId: string;
   documents: Array<{
     format: string;
     label: string;
@@ -182,7 +183,7 @@ export default function ResumeTailorPanel({
         Resume AI Tools
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Use the designated main resume as the base for tailored generation and ATS analysis.
+        Use the designated main resume as the base for tailored generation. ATS analysis uses the attached resume when one exists, otherwise it uses the main resume.
       </Typography>
 
       {loadingVersions ? (
@@ -236,7 +237,7 @@ export default function ResumeTailorPanel({
           disabled={analyzing || !mainResume || !application.jobDescription?.trim()}
           onClick={() => void handleAnalyzeResume()}
         >
-          {analyzing ? "Analyzing ATS Fit..." : "Analyze Main Resume for ATS"}
+          {analyzing ? "Analyzing ATS Fit..." : attachedResume ? "Analyze Attached Resume for ATS" : "Analyze Main Resume for ATS"}
         </Button>
         <Button component={Link} href="/resume" variant="text">
           Open Resume Library

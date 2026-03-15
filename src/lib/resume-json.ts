@@ -6,6 +6,13 @@ import type {
   ResumeProjectInput,
   ResumeWorkExperienceInput,
 } from "@/db/queries/resume-versions";
+import {
+  DEFAULT_RESUME_CERTIFICATION_VISIBILITY,
+  DEFAULT_RESUME_EDUCATION_VISIBILITY,
+  DEFAULT_RESUME_PROJECT_VISIBILITY,
+  DEFAULT_RESUME_SECTION_VISIBILITY,
+  DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY,
+} from "@/lib/resume-visibility";
 
 const marginSchema = z.union([
   z.literal(0.25),
@@ -15,6 +22,54 @@ const marginSchema = z.union([
   z.literal(1.25),
   z.literal(1.5),
 ]);
+
+const resumeSectionVisibilitySchema = z.object({
+  summary: z.boolean().default(true),
+  skills: z.boolean().default(true),
+  workExperience: z.boolean().default(true),
+  projects: z.boolean().default(true),
+  education: z.boolean().default(true),
+  certifications: z.boolean().default(true),
+});
+
+const educationVisibilitySchema = z.object({
+  entry: z.boolean().default(true),
+  schoolName: z.boolean().default(true),
+  degree: z.boolean().default(true),
+  fieldOfStudy: z.boolean().default(true),
+  gpa: z.boolean().default(true),
+  startDate: z.boolean().default(true),
+  endDate: z.boolean().default(true),
+  courses: z.boolean().default(true),
+  awardsHonors: z.boolean().default(true),
+  description: z.boolean().default(true),
+});
+
+const workVisibilitySchema = z.object({
+  entry: z.boolean().default(true),
+  companyName: z.boolean().default(true),
+  roleTitle: z.boolean().default(true),
+  location: z.boolean().default(true),
+  startDate: z.boolean().default(true),
+  endDate: z.boolean().default(true),
+  bullets: z.boolean().default(true),
+});
+
+const projectVisibilitySchema = z.object({
+  entry: z.boolean().default(true),
+  name: z.boolean().default(true),
+  link: z.boolean().default(true),
+  technologies: z.boolean().default(true),
+  description: z.boolean().default(true),
+});
+
+const certificationVisibilitySchema = z.object({
+  entry: z.boolean().default(true),
+  name: z.boolean().default(true),
+  issuer: z.boolean().default(true),
+  issueDate: z.boolean().default(true),
+  credentialId: z.boolean().default(true),
+});
 
 const resumeEducationJsonSchema = z.object({
   schoolName: z.string().default(""),
@@ -26,6 +81,7 @@ const resumeEducationJsonSchema = z.object({
   startDate: z.string().default(""),
   endDate: z.string().default(""),
   description: z.string().default(""),
+  visibilityConfig: educationVisibilitySchema.default(DEFAULT_RESUME_EDUCATION_VISIBILITY),
 });
 
 const resumeWorkExperienceJsonSchema = z.object({
@@ -35,6 +91,7 @@ const resumeWorkExperienceJsonSchema = z.object({
   startDate: z.string().default(""),
   endDate: z.string().default(""),
   bullets: z.string().default(""),
+  visibilityConfig: workVisibilitySchema.default(DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY),
 });
 
 const resumeProjectJsonSchema = z.object({
@@ -42,6 +99,7 @@ const resumeProjectJsonSchema = z.object({
   link: z.string().default(""),
   technologies: z.string().default(""),
   description: z.string().default(""),
+  visibilityConfig: projectVisibilitySchema.default(DEFAULT_RESUME_PROJECT_VISIBILITY),
 });
 
 const resumeCertificationJsonSchema = z.object({
@@ -49,12 +107,15 @@ const resumeCertificationJsonSchema = z.object({
   issuer: z.string().default(""),
   issueDate: z.string().default(""),
   credentialId: z.string().default(""),
+  visibilityConfig: certificationVisibilitySchema.default(DEFAULT_RESUME_CERTIFICATION_VISIBILITY),
 });
 
 export const tailoredResumeSchema = z.object({
   title: z.string().default("Tailored Resume"),
+  location: z.string().default(""),
   summary: z.string().default(""),
   skills: z.string().default(""),
+  visibilityConfig: resumeSectionVisibilitySchema.default(DEFAULT_RESUME_SECTION_VISIBILITY),
   fontSize: z.number().min(8).max(16).default(11),
   margin: marginSchema.default(0.75),
   education: z.array(resumeEducationJsonSchema).default([]),
@@ -89,8 +150,10 @@ export type ResumeAtsAnalysis = z.infer<typeof atsAnalysisSchema> & {
 export function resumeVersionToJson(version: ResumeVersion): TailoredResumeJson {
   return {
     title: version.title,
+    location: version.location ?? "",
     summary: version.summary ?? "",
     skills: version.skills ?? "",
+    visibilityConfig: version.visibilityConfig ?? DEFAULT_RESUME_SECTION_VISIBILITY,
     fontSize: version.fontSize,
     margin: version.margin as TailoredResumeJson["margin"],
     education: version.education.map((entry) => ({
@@ -103,6 +166,7 @@ export function resumeVersionToJson(version: ResumeVersion): TailoredResumeJson 
       startDate: entry.startDate ?? "",
       endDate: entry.endDate ?? "",
       description: entry.description ?? "",
+      visibilityConfig: entry.visibilityConfig ?? DEFAULT_RESUME_EDUCATION_VISIBILITY,
     })),
     workExperience: version.workExperience.map((entry) => ({
       companyName: entry.companyName ?? "",
@@ -111,26 +175,31 @@ export function resumeVersionToJson(version: ResumeVersion): TailoredResumeJson 
       startDate: entry.startDate ?? "",
       endDate: entry.endDate ?? "",
       bullets: entry.bullets ?? "",
+      visibilityConfig: entry.visibilityConfig ?? DEFAULT_RESUME_WORK_EXPERIENCE_VISIBILITY,
     })),
     projects: version.projects.map((entry) => ({
       name: entry.name ?? "",
       link: entry.link ?? "",
       technologies: entry.technologies ?? "",
       description: entry.description ?? "",
+      visibilityConfig: entry.visibilityConfig ?? DEFAULT_RESUME_PROJECT_VISIBILITY,
     })),
     certifications: version.certifications.map((entry) => ({
       name: entry.name ?? "",
       issuer: entry.issuer ?? "",
       issueDate: entry.issueDate ?? "",
       credentialId: entry.credentialId ?? "",
+      visibilityConfig: entry.visibilityConfig ?? DEFAULT_RESUME_CERTIFICATION_VISIBILITY,
     })),
   };
 }
 
 export function resumeJsonToInputs(json: TailoredResumeJson): {
   title: string;
+  location: string;
   summary: string;
   skills: string;
+  visibilityConfig: typeof DEFAULT_RESUME_SECTION_VISIBILITY;
   fontSize: number;
   margin: number;
   education: ResumeEducationInput[];
@@ -140,8 +209,10 @@ export function resumeJsonToInputs(json: TailoredResumeJson): {
 } {
   return {
     title: json.title.trim() || "Tailored Resume",
+    location: json.location,
     summary: json.summary,
     skills: json.skills,
+    visibilityConfig: json.visibilityConfig,
     fontSize: json.fontSize,
     margin: json.margin,
     education: json.education.map((entry) => ({
@@ -154,6 +225,7 @@ export function resumeJsonToInputs(json: TailoredResumeJson): {
       startDate: entry.startDate,
       endDate: entry.endDate,
       description: entry.description,
+      visibilityConfig: entry.visibilityConfig,
     })),
     workExperience: json.workExperience.map((entry) => ({
       companyName: entry.companyName,
@@ -162,18 +234,21 @@ export function resumeJsonToInputs(json: TailoredResumeJson): {
       startDate: entry.startDate,
       endDate: entry.endDate,
       bullets: entry.bullets,
+      visibilityConfig: entry.visibilityConfig,
     })),
     projects: json.projects.map((entry) => ({
       name: entry.name,
       link: entry.link,
       technologies: entry.technologies,
       description: entry.description,
+      visibilityConfig: entry.visibilityConfig,
     })),
     certifications: json.certifications.map((entry) => ({
       name: entry.name,
       issuer: entry.issuer,
       issueDate: entry.issueDate,
       credentialId: entry.credentialId,
+      visibilityConfig: entry.visibilityConfig,
     })),
   };
 }

@@ -52,6 +52,8 @@ Do not swap one concrete technology for a different concrete technology unless t
 You may reorder sections, entries, bullets, and skills so the most relevant real evidence appears first.
 You may rewrite bullets and summaries to foreground technologies, outcomes, and domain overlap that already exist in the source material.
 When experience is adjacent rather than direct, use honest phrasing such as worked with, built with, supported, used in coursework, or used in personal projects.
+The JSON includes visibilityConfig objects at the resume level and on each entry. Use those to hide content that should stay stored but should not appear in this tailored output, and set fields back to visible when they become relevant.
+Prefer hiding low-value or redundant content over deleting it entirely. Keep hidden content in the JSON unless you are intentionally rewriting it.
 Keep skills in ATS-safe grouped syntax, one group per line, using this format: Category: skill, skill, skill
 Keep work bullets one per line, each starting with "- ".
 Keep education list-style fields one item per line, each starting with "- ".

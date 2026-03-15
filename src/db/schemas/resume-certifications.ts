@@ -12,5 +12,6 @@ export const resumeCertifications = sqliteTable("resume_certifications", {
   issuer: text("issuer"),
   issueDate: text("issue_date"),
   credentialId: text("credential_id"),
+  visibilityConfig: text("visibility_config").notNull().default("{}"),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });

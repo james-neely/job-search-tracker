@@ -14,5 +14,6 @@ export const resumeWorkExperiences = sqliteTable("resume_work_experiences", {
   startDate: text("start_date"),
   endDate: text("end_date"),
   bullets: text("bullets"),
+  visibilityConfig: text("visibility_config").notNull().default("{}"),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
