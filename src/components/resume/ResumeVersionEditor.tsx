@@ -79,6 +79,7 @@ interface ResumeDraft {
 }
 
 type EducationAiField = "courses" | "awardsHonors" | "description";
+type ProjectAiField = "technologies" | "description";
 
 const MARGIN_OPTIONS = ["0.25", "0.5", "0.75", "1", "1.25", "1.5"] as const;
 const DEGREE_OPTIONS = [
@@ -202,6 +203,7 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [forking, setForking] = useState(false);
+  const [settingMain, setSettingMain] = useState(false);
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -231,10 +233,21 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
   const [educationFieldSuggestionTarget, setEducationFieldSuggestionTarget] = useState<{ index: number; field: EducationAiField } | null>(null);
   const [educationFieldCoaching, setEducationFieldCoaching] = useState<string | null>(null);
   const [educationFieldCoachingDialogOpen, setEducationFieldCoachingDialogOpen] = useState(false);
+  const [rewritingProjectField, setRewritingProjectField] = useState<{ index: number; field: ProjectAiField } | null>(null);
+  const [coachingProjectField, setCoachingProjectField] = useState<{ index: number; field: ProjectAiField } | null>(null);
+  const [projectFieldSuggestion, setProjectFieldSuggestion] = useState<string | null>(null);
+  const [projectFieldDialogOpen, setProjectFieldDialogOpen] = useState(false);
+  const [projectFieldSuggestionTarget, setProjectFieldSuggestionTarget] = useState<{ index: number; field: ProjectAiField } | null>(null);
+  const [projectFieldCoaching, setProjectFieldCoaching] = useState<string | null>(null);
+  const [projectFieldCoachingDialogOpen, setProjectFieldCoachingDialogOpen] = useState(false);
 
   const educationFieldLabels: Record<EducationAiField, string> = {
     courses: "Courses",
     awardsHonors: "Awards / Honors",
+    description: "Description",
+  };
+  const projectFieldLabels: Record<ProjectAiField, string> = {
+    technologies: "Technologies",
     description: "Description",
   };
 
@@ -399,6 +412,25 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
       setError(forkError instanceof Error ? forkError.message : "Failed to fork resume");
     } finally {
       setForking(false);
+    }
+  };
+
+  const handleSetMainResume = async () => {
+    setSettingMain(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/resume/versions/${versionId}/main`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to set main resume");
+      }
+      setVersion(data);
+    } catch (setMainError) {
+      setError(setMainError instanceof Error ? setMainError.message : "Failed to set main resume");
+    } finally {
+      setSettingMain(false);
     }
   };
 
@@ -868,6 +900,119 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
     }
   };
 
+  const handleRewriteProjectField = async (index: number, field: ProjectAiField) => {
+    if (!draft) return;
+    const entry = draft.projects[index];
+    if (!entry) return;
+
+    setRewritingProjectField({ index, field });
+    setError(null);
+    setProjectFieldSuggestion(null);
+    setProjectFieldSuggestionTarget({ index, field });
+
+    try {
+      const response = await fetch("/api/ai/rewrite-resume-project-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entry.name,
+          link: entry.link,
+          technologies: entry.technologies,
+          description: entry.description,
+          summary: draft.summary,
+          skills: draft.skills,
+          fieldLabel: projectFieldLabels[field],
+          value: entry[field],
+        }),
+      });
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        throw new Error(data.error || `Failed to rewrite ${projectFieldLabels[field].toLowerCase()}`);
+      }
+
+      if (!response.ok) throw new Error(`Failed to rewrite ${projectFieldLabels[field].toLowerCase()}`);
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let content = "";
+      let done = false;
+
+      while (!done) {
+        const result = await reader.read();
+        done = result.done;
+        if (result.value) {
+          content += decoder.decode(result.value);
+        }
+      }
+
+      setProjectFieldSuggestion(content.trim());
+      setProjectFieldDialogOpen(true);
+    } catch (rewriteError) {
+      setError(rewriteError instanceof Error ? rewriteError.message : `Failed to rewrite ${projectFieldLabels[field].toLowerCase()}`);
+    } finally {
+      setRewritingProjectField(null);
+    }
+  };
+
+  const handleCoachProjectField = async (index: number, field: ProjectAiField) => {
+    if (!draft) return;
+    const entry = draft.projects[index];
+    if (!entry) return;
+
+    setCoachingProjectField({ index, field });
+    setError(null);
+    setProjectFieldCoaching(null);
+
+    try {
+      const response = await fetch("/api/ai/coach-resume-project-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entry.name,
+          link: entry.link,
+          technologies: entry.technologies,
+          description: entry.description,
+          summary: draft.summary,
+          skills: draft.skills,
+          fieldLabel: projectFieldLabels[field],
+          value: entry[field],
+        }),
+      });
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        throw new Error(data.error || `Failed to coach ${projectFieldLabels[field].toLowerCase()}`);
+      }
+
+      if (!response.ok) throw new Error(`Failed to coach ${projectFieldLabels[field].toLowerCase()}`);
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let content = "";
+      let done = false;
+
+      while (!done) {
+        const result = await reader.read();
+        done = result.done;
+        if (result.value) {
+          content += decoder.decode(result.value);
+        }
+      }
+
+      setProjectFieldCoaching(content.trim());
+      setProjectFieldCoachingDialogOpen(true);
+    } catch (coachError) {
+      setError(coachError instanceof Error ? coachError.message : `Failed to coach ${projectFieldLabels[field].toLowerCase()}`);
+    } finally {
+      setCoachingProjectField(null);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 3 }}>
@@ -894,6 +1039,13 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button
+            variant={version.isMain ? "contained" : "outlined"}
+            disabled={settingMain || version.isMain}
+            onClick={handleSetMainResume}
+          >
+            {version.isMain ? "Main Resume" : settingMain ? "Setting Main..." : "Set as Main"}
+          </Button>
           <Button variant="outlined" startIcon={<CallSplitIcon />} disabled={forking} onClick={handleFork}>
             {forking ? "Forking..." : "Fork Resume"}
           </Button>
@@ -904,6 +1056,7 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 2 }}>
+          {version.isMain ? <Chip size="small" color="primary" label="Main resume" /> : null}
           <Chip size="small" label={version.parentTitle ? `Forked from ${version.parentTitle}` : "Blank base"} />
           <Chip size="small" variant="outlined" label={`Updated ${formatRelativeTime(version.updatedAt)}`} />
         </Stack>
@@ -1190,8 +1343,62 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 6 }}><TextField label="Project Name" fullWidth value={entry.name} onChange={(e) => handleProjectChange(index, "name", e.target.value)} /></Grid>
                 <Grid size={{ xs: 12, md: 6 }}><TextField label="Link" fullWidth value={entry.link} onChange={(e) => handleProjectChange(index, "link", e.target.value)} /></Grid>
-                <Grid size={{ xs: 12 }}><TextField label="Technologies" fullWidth value={entry.technologies} onChange={(e) => handleProjectChange(index, "technologies", e.target.value)} /></Grid>
-                <Grid size={{ xs: 12 }}><TextField label="Description" fullWidth multiline minRows={3} value={entry.description} onChange={(e) => handleProjectChange(index, "description", e.target.value)} /></Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
+                    <TextField
+                      label="Technologies"
+                      fullWidth
+                      value={entry.technologies}
+                      onChange={(e) => handleProjectChange(index, "technologies", e.target.value)}
+                    />
+                    <Button
+                      variant="outlined"
+                      startIcon={<AutoFixHighIcon />}
+                      disabled={rewritingProjectField?.index === index && rewritingProjectField.field === "technologies"}
+                      onClick={() => void handleRewriteProjectField(index, "technologies")}
+                      sx={{ minWidth: 160, mt: { xs: 0, sm: 0.5 } }}
+                    >
+                      {rewritingProjectField?.index === index && rewritingProjectField.field === "technologies" ? "Rewriting..." : "Rewrite"}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      disabled={coachingProjectField?.index === index && coachingProjectField.field === "technologies"}
+                      onClick={() => void handleCoachProjectField(index, "technologies")}
+                      sx={{ minWidth: 160, mt: { xs: 0, sm: 0.5 } }}
+                    >
+                      {coachingProjectField?.index === index && coachingProjectField.field === "technologies" ? "Coaching..." : "Coach Me"}
+                    </Button>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
+                    <TextField
+                      label="Description"
+                      fullWidth
+                      multiline
+                      minRows={3}
+                      value={entry.description}
+                      onChange={(e) => handleProjectChange(index, "description", e.target.value)}
+                    />
+                    <Button
+                      variant="outlined"
+                      startIcon={<AutoFixHighIcon />}
+                      disabled={rewritingProjectField?.index === index && rewritingProjectField.field === "description"}
+                      onClick={() => void handleRewriteProjectField(index, "description")}
+                      sx={{ minWidth: 160, mt: { xs: 0, sm: 0.5 } }}
+                    >
+                      {rewritingProjectField?.index === index && rewritingProjectField.field === "description" ? "Rewriting..." : "Rewrite"}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      disabled={coachingProjectField?.index === index && coachingProjectField.field === "description"}
+                      onClick={() => void handleCoachProjectField(index, "description")}
+                      sx={{ minWidth: 160, mt: { xs: 0, sm: 0.5 } }}
+                    >
+                      {coachingProjectField?.index === index && coachingProjectField.field === "description" ? "Coaching..." : "Coach Me"}
+                    </Button>
+                  </Box>
+                </Grid>
                 <Grid size={{ xs: 12 }}><Button color="error" onClick={() => removeItem("projects", index)}>Remove Entry</Button></Grid>
               </Grid>
             </Paper>
@@ -1568,6 +1775,80 @@ export default function ResumeVersionEditor({ versionId }: { versionId: string }
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEducationFieldCoachingDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={projectFieldDialogOpen} onClose={() => setProjectFieldDialogOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          {projectFieldSuggestionTarget ? `Review Rewritten ${projectFieldLabels[projectFieldSuggestionTarget.field]}` : "Review Rewritten Project Field"}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" gutterBottom>Current Content</Typography>
+              <Paper variant="outlined" sx={{ p: 2, minHeight: 180 }}>
+                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                  {(projectFieldSuggestionTarget &&
+                    draft.projects[projectFieldSuggestionTarget.index]?.[projectFieldSuggestionTarget.field]) || "(empty)"}
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" gutterBottom>Proposed Content</Typography>
+              <Paper variant="outlined" sx={{ p: 2, minHeight: 180 }}>
+                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                  {projectFieldSuggestion || "(empty)"}
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProjectFieldDialogOpen(false)}>Keep Current</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (draft && projectFieldSuggestion !== null && projectFieldSuggestionTarget) {
+                handleProjectChange(projectFieldSuggestionTarget.index, projectFieldSuggestionTarget.field, projectFieldSuggestion);
+              }
+              setProjectFieldDialogOpen(false);
+            }}
+          >
+            Accept Rewrite
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={projectFieldCoachingDialogOpen} onClose={() => setProjectFieldCoachingDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {coachingProjectField ? `${projectFieldLabels[coachingProjectField.field]} Coaching` : "Project Field Coaching"}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 1.5,
+              "& p": { my: 0 },
+              "& ul, & ol": { my: 0, pl: 3 },
+              "& li": { mb: 0.5 },
+              "& h1, & h2, & h3, & h4, & h5, & h6": { my: 0, fontSize: "1rem", fontWeight: 700 },
+              "& a": { color: "primary.main" },
+              "& code": {
+                fontFamily: "monospace",
+                backgroundColor: "action.hover",
+                px: 0.5,
+                py: 0.125,
+                borderRadius: 0.5,
+              },
+            }}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {projectFieldCoaching || "(no coaching returned)"}
+            </ReactMarkdown>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProjectFieldCoachingDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

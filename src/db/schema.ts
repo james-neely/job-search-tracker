@@ -12,3 +12,4 @@ export { resumeGeneratedDocuments } from "./schemas/resume-generated-documents";
 export { resumeWorkExperiences } from "./schemas/resume-work-experiences";
 export { resumeProjects } from "./schemas/resume-projects";
 export { resumeCertifications } from "./schemas/resume-certifications";
+export { applicationResumeAtsAnalyses } from "./schemas/application-resume-ats-analyses";

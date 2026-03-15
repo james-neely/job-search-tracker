@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { applications } from "./applications";
 
 export const resumeVersions = sqliteTable("resume_versions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -7,6 +8,10 @@ export const resumeVersions = sqliteTable("resume_versions", {
   title: text("title").notNull(),
   summary: text("summary"),
   skills: text("skills"),
+  isMain: integer("is_main", { mode: "boolean" }).notNull().default(false),
+  applicationId: integer("application_id").references(() => applications.id, {
+    onDelete: "set null",
+  }),
   parentVersionId: integer("parent_version_id").references(() => resumeVersions.id, {
     onDelete: "set null",
   }),

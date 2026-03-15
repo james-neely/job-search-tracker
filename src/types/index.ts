@@ -1,19 +1,38 @@
 import type { ApplicationStatus } from "@/lib/constants";
 
+export type EmploymentType = "full_time" | "part_time" | "contract";
+export type CompensationType = "salary" | "hourly";
+export type WorkplaceType = "remote" | "hybrid" | "on_site";
+
 export interface Application {
   id: number;
   companyName: string;
   jobTitle: string;
   status: ApplicationStatus;
+  employmentType: EmploymentType;
+  workplaceType: WorkplaceType;
+  compensationType: CompensationType;
   salaryAsked: number | null;
   salaryMin: number | null;
   salaryMax: number | null;
+  jobPostedAt: string | null;
   jobDescriptionUrl: string | null;
+  jobApplicationUrl: string | null;
+  jobApplicationStatusUrl: string | null;
   jobDescription: string | null;
   notes: string | null;
   companyIntel: string | null;
+  workLocationCity: string | null;
+  workLocationState: string | null;
+  offersEquity: boolean;
+  hiringManagerName: string | null;
+  hiringManagerEmail: string | null;
+  hiringManagerPhone: string | null;
+  hiringManagerLinkedinUrl: string | null;
+  applicationMedium: string | null;
   resumePath: string | null;
   resumeIsUrl: boolean;
+  attachedResumeVersionId: string | null;
   coverLetterPath: string | null;
   coverLetterIsUrl: boolean;
   coverLetterText: string | null;
@@ -141,6 +160,8 @@ export interface ResumeVersion {
   title: string;
   summary: string | null;
   skills: string | null;
+  isMain: boolean;
+  applicationId: number | null;
   parentVersionId: string | null;
   parentTitle: string | null;
   fontSize: number;
@@ -152,6 +173,17 @@ export interface ResumeVersion {
   projects: ResumeProject[];
   certifications: ResumeCertification[];
   documents: ResumeGeneratedDocument[];
+}
+
+export interface ApplicationResumeAtsAnalysisHistory {
+  id: number;
+  applicationId: number;
+  resumeVersionId: string;
+  resumeVersionTitle: string;
+  overallScore: number;
+  matchedKeywordCount: number;
+  totalKeywordCount: number;
+  createdAt: string;
 }
 
 export interface DashboardStats {

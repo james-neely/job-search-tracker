@@ -50,6 +50,8 @@ export interface ResumeVersionWithDetails {
   title: string;
   summary: string | null;
   skills: string | null;
+  isMain: boolean;
+  applicationId: number | null;
   parentVersionId: string | null;
   parentTitle: string | null;
   fontSize: number;
@@ -120,9 +122,22 @@ async function getResumeVersionRowByPublicId(publicId: string) {
 
 export async function listResumeVersions(): Promise<ResumeVersionWithDetails[]> {
   const versions = await db
-    .select()
+    .select({
+      id: resumeVersions.id,
+      publicId: resumeVersions.publicId,
+      title: resumeVersions.title,
+      summary: resumeVersions.summary,
+      skills: resumeVersions.skills,
+      isMain: resumeVersions.isMain,
+      applicationId: resumeVersions.applicationId,
+      parentVersionId: resumeVersions.parentVersionId,
+      fontSize: resumeVersions.fontSize,
+      marginTop: resumeVersions.marginTop,
+      createdAt: resumeVersions.createdAt,
+      updatedAt: resumeVersions.updatedAt,
+    })
     .from(resumeVersions)
-    .orderBy(desc(resumeVersions.updatedAt), desc(resumeVersions.id));
+    .orderBy(desc(resumeVersions.isMain), desc(resumeVersions.updatedAt), desc(resumeVersions.id));
 
   if (versions.length === 0) {
     return [];
@@ -217,6 +232,8 @@ export async function listResumeVersions(): Promise<ResumeVersionWithDetails[]> 
     title: version.title,
     summary: version.summary,
     skills: version.skills,
+    isMain: version.isMain,
+    applicationId: version.applicationId,
     parentVersionId: version.parentVersionId ? (parentPublicIds.get(version.parentVersionId) ?? null) : null,
     parentTitle: version.parentVersionId ? (parentTitles.get(version.parentVersionId) ?? null) : null,
     fontSize: version.fontSize,
@@ -236,7 +253,11 @@ export async function getResumeVersion(versionId: string): Promise<ResumeVersion
   return versions.find((version) => version.id === versionId) ?? null;
 }
 
-export async function createResumeVersion(title: string, parentVersionId?: string | null) {
+export async function createResumeVersion(
+  title: string,
+  parentVersionId?: string | null,
+  options?: { applicationId?: number | null }
+) {
   let parentConfig: Pick<
     ResumeVersionWithDetails,
     "fontSize" | "margin" | "summary" | "skills"
@@ -261,6 +282,8 @@ export async function createResumeVersion(title: string, parentVersionId?: strin
       title,
       summary: parentConfig?.summary ?? null,
       skills: parentConfig?.skills ?? null,
+      isMain: false,
+      applicationId: options?.applicationId ?? null,
       parentVersionId: parentRowId,
       fontSize: parentConfig?.fontSize ?? 11,
       marginTop: parentConfig?.margin ?? 0.75,
@@ -461,6 +484,29 @@ export async function updateResumeVersion(
   await db
     .update(resumeVersions)
     .set({ updatedAt: sql`(datetime('now'))` })
+    .where(eq(resumeVersions.id, versionRow.id));
+
+  return getResumeVersion(versionId);
+}
+
+export async function getMainResumeVersion(): Promise<ResumeVersionWithDetails | null> {
+  const versions = await listResumeVersions();
+  return versions.find((version) => version.isMain) ?? null;
+}
+
+export async function setMainResumeVersion(versionId: string) {
+  const versionRow = await getResumeVersionRowByPublicId(versionId);
+  if (!versionRow) {
+    return null;
+  }
+
+  await db.update(resumeVersions).set({ isMain: false });
+  await db
+    .update(resumeVersions)
+    .set({
+      isMain: true,
+      updatedAt: sql`(datetime('now'))`,
+    })
     .where(eq(resumeVersions.id, versionRow.id));
 
   return getResumeVersion(versionId);

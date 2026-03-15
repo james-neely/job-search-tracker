@@ -13,11 +13,25 @@ interface RequestBody {
     companyName: string;
     jobTitle: string;
     status: string;
+    employmentType?: string;
+    workplaceType?: string;
+    applicationMedium?: string | null;
     jobDescription?: string;
+    jobApplicationUrl?: string | null;
+    jobApplicationStatusUrl?: string | null;
     notes?: string;
     salaryAsked?: number | null;
     salaryMin?: number | null;
     salaryMax?: number | null;
+    compensationType?: string;
+    offersEquity?: boolean;
+    jobPostedAt?: string | null;
+    workLocationCity?: string | null;
+    workLocationState?: string | null;
+    hiringManagerName?: string | null;
+    hiringManagerEmail?: string | null;
+    hiringManagerPhone?: string | null;
+    hiringManagerLinkedinUrl?: string | null;
     dateApplied?: string | null;
   };
 }
@@ -32,10 +46,24 @@ function buildSystemPrompt(context: RequestBody["context"], resumeText: string |
   ];
 
   if (context.dateApplied) parts.push(`- Applied: ${context.dateApplied}`);
+  if (context.jobPostedAt) parts.push(`- Job posted: ${context.jobPostedAt}`);
+  if (context.employmentType) parts.push(`- Employment type: ${context.employmentType}`);
+  if (context.workplaceType) parts.push(`- Workplace type: ${context.workplaceType}`);
+  if (context.applicationMedium) parts.push(`- Application medium: ${context.applicationMedium}`);
+  if (context.workLocationCity || context.workLocationState) {
+    parts.push(`- Work location: ${context.workLocationCity ?? "?"}, ${context.workLocationState ?? "?"}`);
+  }
+  if (context.offersEquity) parts.push(`- Company offers equity`);
   if (context.salaryAsked) parts.push(`- Salary asked: $${context.salaryAsked.toLocaleString()}`);
   if (context.salaryMin || context.salaryMax) {
-    parts.push(`- Salary range: $${context.salaryMin?.toLocaleString() ?? "?"} - $${context.salaryMax?.toLocaleString() ?? "?"}`);
+    parts.push(`- ${context.compensationType === "hourly" ? "Hourly" : "Salary"} range: $${context.salaryMin?.toLocaleString() ?? "?"} - $${context.salaryMax?.toLocaleString() ?? "?"}`);
   }
+  if (context.jobApplicationUrl) parts.push(`- Application URL: ${context.jobApplicationUrl}`);
+  if (context.jobApplicationStatusUrl) parts.push(`- Application status URL: ${context.jobApplicationStatusUrl}`);
+  if (context.hiringManagerName) parts.push(`- Hiring manager: ${context.hiringManagerName}`);
+  if (context.hiringManagerEmail) parts.push(`- Hiring manager email: ${context.hiringManagerEmail}`);
+  if (context.hiringManagerPhone) parts.push(`- Hiring manager phone: ${context.hiringManagerPhone}`);
+  if (context.hiringManagerLinkedinUrl) parts.push(`- Hiring manager LinkedIn: ${context.hiringManagerLinkedinUrl}`);
   if (context.jobDescription) parts.push(`\nJob description:\n${context.jobDescription}`);
   if (context.notes) parts.push(`\nUser's notes:\n${context.notes}`);
   if (resumeText) parts.push(`\nCandidate's resume:\n${resumeText}`);

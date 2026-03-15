@@ -1,29 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getResumeVersion, addGeneratedResumeDocument } from "@/db/queries/resume-versions";
+import { getResumeVersion } from "@/db/queries/resume-versions";
 import { getAllSettings } from "@/db/queries/settings";
-import {
-  renderResumeMarkdown,
-  renderResumeDocx,
-  renderResumePdf,
-} from "@/lib/resume-builder";
-import { saveBufferAsUploadedFile } from "@/lib/file-storage";
+import { generateStoredResumeDocument, RESUME_FORMAT_CONFIG } from "@/lib/resume-documents";
 
 type RouteParams = { params: Promise<{ id: string }> };
-
-const FORMAT_CONFIG = {
-  markdown: {
-    extension: ".md",
-    label: "Markdown",
-  },
-  pdf: {
-    extension: ".pdf",
-    label: "PDF",
-  },
-  docx: {
-    extension: ".docx",
-    label: "DOCX",
-  },
-} as const;
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
@@ -36,7 +16,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const body = await request.json();
   const format = typeof body.format === "string" ? body.format : "";
 
-  if (!(format in FORMAT_CONFIG)) {
+  if (!(format in RESUME_FORMAT_CONFIG)) {
     return NextResponse.json({ error: "Unsupported resume format" }, { status: 400 });
   }
 
@@ -45,23 +25,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     settingsMap[setting.key] = setting.value;
   }
 
-  let buffer: Buffer;
-  if (format === "markdown") {
-    buffer = Buffer.from(renderResumeMarkdown(version, settingsMap), "utf-8");
-  } else if (format === "pdf") {
-    buffer = await renderResumePdf(version, settingsMap);
-  } else {
-    buffer = await renderResumeDocx(version, settingsMap);
-  }
-
-  const config = FORMAT_CONFIG[format as keyof typeof FORMAT_CONFIG];
-  const filePath = await saveBufferAsUploadedFile(buffer, config.extension);
-  const document = await addGeneratedResumeDocument(
-    version.id,
-    format,
-    `${version.title} ${config.label}`,
-    filePath
-  );
+  const generated = await generateStoredResumeDocument({
+    version,
+    settingsMap,
+    format: format as keyof typeof RESUME_FORMAT_CONFIG,
+  });
+  const document = generated.resumeDocument;
 
   if (!document) {
     return NextResponse.json({ error: "Failed to save generated document" }, { status: 500 });

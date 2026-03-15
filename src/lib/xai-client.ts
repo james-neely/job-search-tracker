@@ -1,5 +1,10 @@
 import { createXai } from "@ai-sdk/xai";
-import { streamText, type StreamTextResult } from "ai";
+import {
+  generateObject,
+  streamText,
+  type StreamTextResult,
+} from "ai";
+import type { z } from "zod";
 import { XAI_DEFAULT_MODEL } from "./constants";
 import { getSetting } from "@/db/queries/settings";
 
@@ -27,4 +32,28 @@ export async function streamChat(
     model: xai(model),
     messages,
   });
+}
+
+export async function generateStructuredObject<T>({
+  messages,
+  schema,
+  model = XAI_DEFAULT_MODEL,
+}: {
+  messages: ChatMessage[];
+  schema: z.ZodType<T>;
+  model?: string;
+}): Promise<T> {
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    throw new Error("xAI API key not configured. Set it in Settings.");
+  }
+
+  const xai = createXai({ apiKey });
+  const result = await generateObject({
+    model: xai(model),
+    schema,
+    messages,
+  });
+
+  return result.object;
 }

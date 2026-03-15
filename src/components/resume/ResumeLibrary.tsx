@@ -32,6 +32,7 @@ export default function ResumeLibrary() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [forkingId, setForkingId] = useState<string | null>(null);
+  const [settingMainId, setSettingMainId] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -149,6 +150,30 @@ export default function ResumeLibrary() {
     }
   };
 
+  const handleSetMainVersion = async (versionId: string) => {
+    setSettingMainId(versionId);
+    setError(null);
+    try {
+      const response = await fetch(`/api/resume/versions/${versionId}/main`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to set main resume");
+      }
+      setVersions((current) =>
+        current.map((version) => ({
+          ...version,
+          isMain: version.id === versionId,
+        }))
+      );
+    } catch (setMainError) {
+      setError(setMainError instanceof Error ? setMainError.message : "Failed to set main resume");
+    } finally {
+      setSettingMainId(null);
+    }
+  };
+
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -211,6 +236,7 @@ export default function ResumeLibrary() {
                   <Box>
                     <Typography variant="h6">{version.title}</Typography>
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1, mb: 1 }}>
+                      {version.isMain ? <Chip size="small" color="primary" label="Main resume" /> : null}
                       <Chip size="small" label={version.parentTitle ? `Forked from ${version.parentTitle}` : "Blank base"} />
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
@@ -220,6 +246,14 @@ export default function ResumeLibrary() {
                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                     <Button component={Link} href={`/resume/${version.id}`} variant="contained" size="small">
                       Open Builder
+                    </Button>
+                    <Button
+                      variant={version.isMain ? "contained" : "outlined"}
+                      size="small"
+                      disabled={settingMainId === version.id || version.isMain}
+                      onClick={() => handleSetMainVersion(version.id)}
+                    >
+                      {version.isMain ? "Main Resume" : settingMainId === version.id ? "Setting..." : "Set as Main"}
                     </Button>
                     <Button
                       variant="outlined"

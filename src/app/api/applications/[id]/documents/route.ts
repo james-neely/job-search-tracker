@@ -30,6 +30,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   return NextResponse.json(doc[0], { status: 201 });
 }
 
+export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const { id } = await params;
+  const body = await request.json();
+
+  if (!body.docId || typeof body.label !== "string" || !body.label.trim()) {
+    return NextResponse.json({ error: "docId and label are required" }, { status: 400 });
+  }
+
+  const updated = await db
+    .update(documents)
+    .set({ label: body.label.trim() })
+    .where(
+      and(
+        eq(documents.id, Number(body.docId)),
+        eq(documents.applicationId, Number(id))
+      )
+    )
+    .returning();
+
+  return NextResponse.json(updated[0] ?? null);
+}
+
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const docId = request.nextUrl.searchParams.get("docId");

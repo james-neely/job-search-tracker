@@ -94,7 +94,7 @@ export default function ApplicationDetailPage() {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <InterviewPrepPanel companyName={application.companyName} jobTitle={application.jobTitle} jobDescription={application.jobDescription ?? undefined} />
           <CompanyResearchPanel companyName={application.companyName} jobTitle={application.jobTitle} />
-          <ResumeTailorPanel companyName={application.companyName} jobTitle={application.jobTitle} jobDescription={application.jobDescription ?? undefined} />
+          <ResumeTailorPanel application={application} onUpdate={fetchAll} />
         </Box>
       )}
 

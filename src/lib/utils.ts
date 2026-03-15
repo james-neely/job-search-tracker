@@ -7,6 +7,48 @@ export function formatCurrency(value: number | null): string {
   }).format(value);
 }
 
+const HOURS_PER_YEAR = 52 * 40;
+
+export function hourlyToAnnual(value: number | null): number | null {
+  if (value === null) return null;
+  return value * HOURS_PER_YEAR;
+}
+
+export function annualToHourly(value: number | null): number | null {
+  if (value === null) return null;
+  return value / HOURS_PER_YEAR;
+}
+
+export function formatHourly(value: number | null): string {
+  if (value === null) return "N/A";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+export function formatCompensationRange(
+  min: number | null,
+  max: number | null,
+  compensationType: "salary" | "hourly"
+): string {
+  const formatter = compensationType === "salary" ? formatCurrency : formatHourly;
+  const suffix = compensationType === "salary" ? "/yr" : "/hr";
+
+  if (min !== null && max !== null) {
+    return `${formatter(min)} - ${formatter(max)} ${suffix}`;
+  }
+  if (min !== null) {
+    return `${formatter(min)} ${suffix}`;
+  }
+  if (max !== null) {
+    return `${formatter(max)} ${suffix}`;
+  }
+  return "N/A";
+}
+
 export function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
