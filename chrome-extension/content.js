@@ -57,6 +57,31 @@ function getFirstText(selectors) {
   return "";
 }
 
+function getTopCardRoot() {
+  for (const selector of TOP_CARD_SELECTORS) {
+    const root = document.querySelector(selector);
+    if (root instanceof HTMLElement) {
+      return root;
+    }
+  }
+
+  const companyLink = document.querySelector('a[href*="/company/"]');
+  if (!(companyLink instanceof HTMLElement)) {
+    return null;
+  }
+
+  let current = companyLink.parentElement;
+  while (current) {
+    const text = current.innerText || "";
+    if (/applicants|easy apply|full-time|part-time|hybrid|remote|\d+\s+\w+\s+ago/i.test(text)) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+
+  return null;
+}
+
 function normalizeText(text) {
   return text
     .replace(/\r/g, "")
@@ -68,6 +93,44 @@ function normalizeText(text) {
 function getElementText(element) {
   const text = element?.innerText?.trim() || element?.textContent?.trim() || "";
   return normalizeText(text);
+}
+
+function getCompanyName() {
+  const direct = getFirstText(COMPANY_SELECTORS);
+  if (direct) {
+    return direct;
+  }
+
+  const root = getTopCardRoot();
+  if (!root) {
+    return "";
+  }
+
+  const companyLink = root.querySelector('a[href*="/company/"]');
+  return getElementText(companyLink);
+}
+
+function getJobTitle() {
+  const direct = getFirstText(TITLE_SELECTORS);
+  if (direct) {
+    return direct;
+  }
+
+  const root = getTopCardRoot();
+  if (!root) {
+    return "";
+  }
+
+  const companyName = getCompanyName();
+  const paragraphs = Array.from(root.querySelectorAll("p"))
+    .map((paragraph) => getElementText(paragraph))
+    .filter(Boolean);
+
+  return paragraphs.find((text) =>
+    text !== companyName &&
+    !/applicants|reposted|posted|promoted by hirer|response insights|\d+\s+\w+\s+ago/i.test(text) &&
+    text.split(" ").length >= 2
+  ) || "";
 }
 
 function getHeadingScopedDescription() {
@@ -155,6 +218,20 @@ function getJobDescription() {
 }
 
 function getMetadataLineText() {
+  const root = getTopCardRoot();
+  if (root) {
+    const paragraphs = Array.from(root.querySelectorAll("p"))
+      .map((paragraph) => getElementText(paragraph))
+      .filter(Boolean);
+
+    const directMetadata = paragraphs.find((text) =>
+      /applicants|reposted|promoted by hirer|actively reviewing applicants|\d+\s+\w+\s+ago/i.test(text)
+    );
+    if (directMetadata) {
+      return directMetadata;
+    }
+  }
+
   for (const selector of TOP_CARD_SELECTORS) {
     const root = document.querySelector(selector);
     const text = getElementText(root);
@@ -172,9 +249,16 @@ function getMetadataLineText() {
   ) || "";
 }
 
+function getTopCardMetadataParts(metadataText) {
+  return metadataText
+    .split("·")
+    .map((part) => normalizeText(part))
+    .filter(Boolean);
+}
+
 function extractLocation(metadataText) {
-  const firstSegment = metadataText.split("·").map((part) => part.trim()).find(Boolean) || "";
-  return /applicants|reposted|promoted/i.test(firstSegment) ? "" : firstSegment;
+  const firstSegment = getTopCardMetadataParts(metadataText)[0] || "";
+  return /applicants|reposted|posted|promoted|response insights/i.test(firstSegment) ? "" : firstSegment;
 }
 
 function extractApplicantsCount(metadataText) {
@@ -183,12 +267,26 @@ function extractApplicantsCount(metadataText) {
 }
 
 function extractRelativePosted(metadataText) {
-  const match = metadataText.match(/(reposted\s+.+?|posted\s+.+?)(?:·|$)/i);
-  return match ? match[1].trim() : "";
+  const explicit = metadataText.match(/(reposted\s+.+?|posted\s+.+?)(?:·|$)/i);
+  if (explicit) {
+    return explicit[1].trim();
+  }
+
+  const parts = getTopCardMetadataParts(metadataText);
+  const relativePart = parts.find((part) =>
+    /^(?:reposted\s+)?\d+\s+(?:minute|hour|day|week|month|year)s?\s+ago$/i.test(part)
+  );
+  if (relativePart) {
+    return relativePart.trim();
+  }
+
+  const relative = metadataText.match(/((?:reposted\s+)?\d+\s+(?:minute|hour|day|week|month|year)s?\s+ago)/i);
+  return relative ? relative[1].trim() : "";
 }
 
 function extractTopCardBadges() {
-  const badges = Array.from(document.querySelectorAll("a span, button span, div span"))
+  const root = getTopCardRoot() || document;
+  const badges = Array.from(root.querySelectorAll("a span, button span, div span"))
     .map((node) => getElementText(node))
     .filter(Boolean);
 
@@ -196,6 +294,8 @@ function extractTopCardBadges() {
   return {
     easyApply: unique.some((text) => /^easy apply$/i.test(text)),
     remote: unique.some((text) => /^remote$/i.test(text)),
+    hybrid: unique.some((text) => /^hybrid$/i.test(text)),
+    onSite: unique.some((text) => /^(on-site|onsite)$/i.test(text)),
     employmentType:
       unique.find((text) => /^(full-time|part-time|contract|temporary|internship)$/i.test(text)) || "",
     salaryText:
@@ -246,6 +346,22 @@ function getApplicationUrl() {
   return easyApplyLink?.href || getCleanLinkedInUrl();
 }
 
+function deriveWorkplaceType(badges, location) {
+  if (badges.remote || /^remote$/i.test(location)) {
+    return "remote";
+  }
+
+  if (badges.hybrid) {
+    return "hybrid";
+  }
+
+  if (badges.onSite || location) {
+    return "on_site";
+  }
+
+  return "";
+}
+
 function buildImportedNotes(metadata) {
   const noteLines = [
     metadata.relativePosted ? `LinkedIn posted status: ${metadata.relativePosted}` : "",
@@ -280,11 +396,11 @@ function getJobData() {
   return {
     supported: true,
     cleanUrl: getCleanLinkedInUrl(),
-    jobTitle: getFirstText(TITLE_SELECTORS),
-    companyName: getFirstText(COMPANY_SELECTORS),
+    jobTitle: getJobTitle(),
+    companyName: getCompanyName(),
     jobDescription: getJobDescription(),
     jobApplicationUrl: getApplicationUrl(),
-    workplaceType: badges.remote || /^remote$/i.test(location) ? "remote" : location ? "on_site" : "",
+    workplaceType: deriveWorkplaceType(badges, location),
     workLocationCity: splitLocation.city,
     workLocationState: splitLocation.state,
     employmentType:
