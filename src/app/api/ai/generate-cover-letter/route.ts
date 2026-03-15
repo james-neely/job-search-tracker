@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
   const [
     resumeText,
     fullName,
+    preferredFirstName,
     email,
     phone,
     linkedinUrl,
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
   ] = await Promise.all([
     getSetting("resume_text"),
     getSetting("full_name"),
+    getSetting("preferred_first_name"),
     getSetting("email"),
     getSetting("phone"),
     getSetting("linkedin_url"),
@@ -53,6 +55,7 @@ professional, specific to the role and company, and highlight relevant experienc
 Do not use placeholders or generic filler text. Write the full letter ready to send.
 Include the candidate's header block (name, address, contact info) at the top exactly as provided.
 The date of the letter is ${today}. Include it in the letter.
+${preferredFirstName ? `The candidate's preferred first name is ${preferredFirstName}. Use it when a first-name reference is appropriate, but keep the full header name unchanged.` : ""}
 ${footerInstruction}
 Never use em-dashes or en-dashes; use commas, periods, or other punctuation instead.`.trim();
 

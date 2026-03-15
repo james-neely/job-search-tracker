@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -9,7 +10,6 @@ import Alert from "@mui/material/Alert";
 import Grid from "@mui/material/Grid2";
 import LoadingState from "@/components/common/LoadingState";
 import ProfileInfoFields from "@/components/settings/ProfileInfoFields";
-import ResumeUploadSection from "@/components/settings/ResumeUploadSection";
 import CoverLetterSettingsSection from "@/components/settings/CoverLetterSettingsSection";
 
 export default function SettingsPage() {
@@ -49,8 +49,6 @@ export default function SettingsPage() {
 
       <ProfileInfoFields settings={settings} onChange={handleChange} />
 
-      <ResumeUploadSection initialResumePath={settings.resume_path || ""} />
-
       <CoverLetterSettingsSection settings={settings} onChange={handleChange} />
 
       <Paper sx={{ p: 3 }}>
@@ -78,6 +76,9 @@ export default function SettingsPage() {
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
+            <Button component={Link} href="/resume" variant="outlined" sx={{ mr: 2 }}>
+              Open Resume Builder
+            </Button>
             <Button onClick={handleSave} size="large">Save Settings</Button>
           </Grid>
         </Grid>

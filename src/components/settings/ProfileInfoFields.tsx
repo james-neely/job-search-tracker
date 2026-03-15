@@ -7,6 +7,7 @@ import Grid from "@mui/material/Grid2";
 
 const PROFILE_FIELDS = [
   { key: "full_name", label: "Full Name" },
+  { key: "preferred_first_name", label: "Preferred First Name" },
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone Number" },
   { key: "current_company", label: "Current Company" },

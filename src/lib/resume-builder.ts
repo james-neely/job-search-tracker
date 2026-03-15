@@ -214,6 +214,7 @@ export function renderResumeMarkdown(
     : [];
   const name = settings.full_name?.trim() || "Your Name";
   const contact = compact([
+    settings.preferred_first_name ? `Preferred First Name: ${settings.preferred_first_name}` : null,
     version.location,
     settings.email,
     settings.phone,
@@ -361,6 +362,7 @@ export async function renderResumeDocx(
     : [];
   const name = settings.full_name?.trim() || "Your Name";
   const contact = compact([
+    settings.preferred_first_name ? `Preferred First Name: ${settings.preferred_first_name}` : null,
     version.location,
     settings.email,
     settings.phone,
@@ -552,6 +554,7 @@ export async function renderResumePdf(
     : [];
   const name = settings.full_name?.trim() || "Your Name";
   const contact = compact([
+    settings.preferred_first_name ? `Preferred First Name: ${settings.preferred_first_name}` : null,
     version.location,
     settings.email,
     settings.phone,

@@ -10,6 +10,7 @@ import CheckIcon from "@mui/icons-material/Check";
 
 const PROFILE_FIELDS = [
   { key: "full_name", label: "Full Name" },
+  { key: "preferred_first_name", label: "Preferred First Name" },
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone" },
   { key: "current_company", label: "Current Company" },
