@@ -1,0 +1,104 @@
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background: #f4f1e8;
+  color: #18230f;
+}
+
+.popup {
+  width: 320px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.header h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.header p {
+  margin: 0;
+  font-size: 13px;
+  color: #5f6f52;
+}
+
+.section {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5f6f52;
+}
+
+input,
+select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #b8c4a7;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #fffdf7;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  background: #2f4f4f;
+  color: white;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #d2e3c8;
+  color: #18230f;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.actions {
+  grid-template-columns: 1fr;
+}
+
+.status {
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fffdf7;
+  border: 1px solid #d7dfcc;
+  font-size: 13px;
+}
+
+.meta {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.meta span {
+  color: #5f6f52;
+}
+
+.feedback {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  background: #18230f;
+  color: white;
+}
+
+.hidden {
+  display: none;
+}

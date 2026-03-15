@@ -24,6 +24,34 @@ interface Props {
   application?: Application;
 }
 
+interface ImportedApplicationDraft {
+  companyName?: string;
+  jobTitle?: string;
+  jobDescriptionUrl?: string;
+  jobDescription?: string;
+  applicationMedium?: string;
+  source?: string;
+}
+
+function decodeImportPayload(hash: string): ImportedApplicationDraft | null {
+  const prefix = "#import=";
+  if (!hash.startsWith(prefix)) {
+    return null;
+  }
+
+  try {
+    const encoded = hash.slice(prefix.length);
+    const padded = encoded.replace(/-/g, "+").replace(/_/g, "/");
+    const base64 = padded + "=".repeat((4 - (padded.length % 4 || 4)) % 4);
+    const decoded = atob(base64);
+    const bytes = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as ImportedApplicationDraft;
+    return typeof parsed === "object" && parsed !== null ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ApplicationForm({ application }: Props) {
   const router = useRouter();
   const isEdit = !!application;
@@ -58,10 +86,29 @@ export default function ApplicationForm({ application }: Props) {
   const [jobBoards, setJobBoards] = useState<JobBoard[]>([]);
   const [newMediumName, setNewMediumName] = useState("");
   const [addingMedium, setAddingMedium] = useState(false);
+  const [importedSource, setImportedSource] = useState<string | null>(null);
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    if (isEdit || typeof window === "undefined") return;
+
+    const imported = decodeImportPayload(window.location.hash);
+    if (!imported) return;
+
+    setForm((prev) => ({
+      ...prev,
+      companyName: imported.companyName ?? prev.companyName,
+      jobTitle: imported.jobTitle ?? prev.jobTitle,
+      jobDescriptionUrl: imported.jobDescriptionUrl ?? prev.jobDescriptionUrl,
+      jobDescription: imported.jobDescription ?? prev.jobDescription,
+      applicationMedium: imported.applicationMedium ?? prev.applicationMedium,
+    }));
+    setImportedSource(imported.source ?? "Chrome extension");
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [isEdit]);
 
   useEffect(() => {
     let active = true;
@@ -150,6 +197,11 @@ export default function ApplicationForm({ application }: Props) {
   };
 
   const compensationUnitLabel = form.compensationType === "salary" ? "Salary" : "Hourly";
+  const mediumOptions = Array.from(
+    new Set(
+      [...jobBoards.map((board) => board.name), form.applicationMedium].filter(Boolean)
+    )
+  ).sort((left, right) => left.localeCompare(right));
   const askedValue = form.salaryAsked ? Number(form.salaryAsked) : null;
   const minValue = form.salaryMin ? Number(form.salaryMin) : null;
   const maxValue = form.salaryMax ? Number(form.salaryMax) : null;
@@ -165,6 +217,11 @@ export default function ApplicationForm({ application }: Props) {
       <Typography variant="h5" gutterBottom>
         {isEdit ? "Edit Application" : "New Application"}
       </Typography>
+      {importedSource ? (
+        <Typography variant="body2" color="primary" sx={{ mb: 2 }}>
+          Imported from {importedSource}. Review the captured fields before saving.
+        </Typography>
+      ) : null}
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Company Name" value={form.companyName} onChange={(e) => handleChange("companyName", e.target.value)} required fullWidth />
@@ -267,8 +324,8 @@ export default function ApplicationForm({ application }: Props) {
             fullWidth
           >
             <MenuItem value="">None</MenuItem>
-            {jobBoards.map((board) => (
-              <MenuItem key={board.id} value={board.name}>{board.name}</MenuItem>
+            {mediumOptions.map((medium) => (
+              <MenuItem key={medium} value={medium}>{medium}</MenuItem>
             ))}
           </TextField>
         </Grid>

@@ -10,6 +10,7 @@ import Alert from "@mui/material/Alert";
 import Grid from "@mui/material/Grid2";
 import LoadingState from "@/components/common/LoadingState";
 import ProfileInfoFields from "@/components/settings/ProfileInfoFields";
+import CompanionServerSettingsSection from "@/components/settings/CompanionServerSettingsSection";
 import CoverLetterSettingsSection from "@/components/settings/CoverLetterSettingsSection";
 
 export default function SettingsPage() {
@@ -48,6 +49,11 @@ export default function SettingsPage() {
       {saved && <Alert severity="success" sx={{ mb: 2 }}>Settings saved.</Alert>}
 
       <ProfileInfoFields settings={settings} onChange={handleChange} />
+
+      <CompanionServerSettingsSection
+        value={settings.companion_servers_json || ""}
+        onChange={(nextValue) => setSettings((current) => ({ ...current, companion_servers_json: nextValue }))}
+      />
 
       <CoverLetterSettingsSection settings={settings} onChange={handleChange} />
 

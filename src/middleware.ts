@@ -48,6 +48,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    if (request.nextUrl.pathname === "/api/extension/servers") {
+      return NextResponse.next();
+    }
+
     if (request.nextUrl.pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

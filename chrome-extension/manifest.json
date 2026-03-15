@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Job Search Tracker Companion",
+  "version": "0.1.0",
+  "description": "Capture LinkedIn job URLs and descriptions for Job Search Tracker.",
+  "permissions": ["activeTab", "tabs", "storage", "clipboardWrite"],
+  "host_permissions": ["https://www.linkedin.com/jobs/view/*", "http://*/*", "https://*/*"],
+  "action": {
+    "default_title": "Job Search Tracker Companion",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/jobs/view/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

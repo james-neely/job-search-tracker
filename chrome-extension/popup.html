@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Job Search Tracker Companion</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="header">
+        <h1>Job Capture</h1>
+        <p>LinkedIn companion for Job Search Tracker.</p>
+      </header>
+
+      <section class="section">
+        <label class="label" for="settings-origin">Settings server</label>
+        <input id="settings-origin" type="url" placeholder="http://localhost:3001" />
+        <button id="save-origin" class="secondary" type="button">Load Servers</button>
+      </section>
+
+      <section class="section">
+        <label class="label" for="server-select">Send to server</label>
+        <select id="server-select"></select>
+      </section>
+
+      <section class="section">
+        <div id="page-status" class="status">Checking current tab…</div>
+        <div id="job-meta" class="meta hidden">
+          <strong id="job-title"></strong>
+          <span id="job-company"></span>
+        </div>
+      </section>
+
+      <section class="section actions">
+        <button id="copy-clean-url" type="button">Copy Clean URL</button>
+        <button id="copy-description" type="button">Copy Job Description</button>
+        <button id="open-app" class="secondary" type="button">Open in App</button>
+      </section>
+
+      <p id="feedback" class="feedback hidden"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
