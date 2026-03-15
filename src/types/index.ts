@@ -81,6 +81,79 @@ export interface PendingTask extends ApplicationTask {
   jobTitle: string;
 }
 
+export interface ResumeEducationEntry {
+  id: number;
+  sortOrder: number;
+  schoolName: string;
+  degree: string;
+  fieldOfStudy: string;
+  gpa: string | null;
+  courses: string | null;
+  awardsHonors: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface ResumeWorkExperience {
+  id: number;
+  sortOrder: number;
+  companyName: string;
+  roleTitle: string;
+  location: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  bullets: string | null;
+  createdAt: string;
+}
+
+export interface ResumeProject {
+  id: number;
+  sortOrder: number;
+  name: string;
+  link: string | null;
+  technologies: string | null;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface ResumeCertification {
+  id: number;
+  sortOrder: number;
+  name: string;
+  issuer: string | null;
+  issueDate: string | null;
+  credentialId: string | null;
+  createdAt: string;
+}
+
+export interface ResumeGeneratedDocument {
+  id: number;
+  format: string;
+  label: string;
+  filePath: string;
+  createdAt: string;
+}
+
+export interface ResumeVersion {
+  id: string;
+  title: string;
+  summary: string | null;
+  skills: string | null;
+  parentVersionId: string | null;
+  parentTitle: string | null;
+  fontSize: number;
+  margin: number;
+  createdAt: string;
+  updatedAt: string;
+  education: ResumeEducationEntry[];
+  workExperience: ResumeWorkExperience[];
+  projects: ResumeProject[];
+  certifications: ResumeCertification[];
+  documents: ResumeGeneratedDocument[];
+}
+
 export interface DashboardStats {
   totalApplications: number;
   appliedToday: number;

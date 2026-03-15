@@ -24,6 +24,17 @@ async function generateExpectedToken(password: string): Promise<string> {
 
 export async function middleware(request: NextRequest) {
   const authPassword = process.env.AUTH_PASSWORD;
+  const resumeUuidMatch = request.nextUrl.pathname.match(
+    /^\/resume\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i
+  );
+
+  if (resumeUuidMatch) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/resume-builder";
+    url.searchParams.set("id", resumeUuidMatch[1]);
+    return NextResponse.rewrite(url);
+  }
+
   if (!authPassword) {
     return NextResponse.next();
   }
