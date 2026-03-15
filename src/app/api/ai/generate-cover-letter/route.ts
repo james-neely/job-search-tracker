@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import { streamChat } from "@/lib/xai-client";
 import { getSetting } from "@/db/queries/settings";
