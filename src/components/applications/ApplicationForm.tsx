@@ -28,8 +28,17 @@ interface ImportedApplicationDraft {
   companyName?: string;
   jobTitle?: string;
   jobDescriptionUrl?: string;
+  jobApplicationUrl?: string;
   jobDescription?: string;
   applicationMedium?: string;
+  workplaceType?: string;
+  workLocationCity?: string;
+  workLocationState?: string;
+  employmentType?: string;
+  compensationType?: string;
+  salaryMin?: string;
+  salaryMax?: string;
+  notes?: string;
   source?: string;
 }
 
@@ -103,8 +112,19 @@ export default function ApplicationForm({ application }: Props) {
       companyName: imported.companyName ?? prev.companyName,
       jobTitle: imported.jobTitle ?? prev.jobTitle,
       jobDescriptionUrl: imported.jobDescriptionUrl ?? prev.jobDescriptionUrl,
+      jobApplicationUrl: imported.jobApplicationUrl ?? prev.jobApplicationUrl,
       jobDescription: imported.jobDescription ?? prev.jobDescription,
       applicationMedium: imported.applicationMedium ?? prev.applicationMedium,
+      workplaceType: imported.workplaceType ?? prev.workplaceType,
+      workLocationCity: imported.workLocationCity ?? prev.workLocationCity,
+      workLocationState: imported.workLocationState ?? prev.workLocationState,
+      employmentType: imported.employmentType ?? prev.employmentType,
+      compensationType: imported.compensationType ?? prev.compensationType,
+      salaryMin: imported.salaryMin ?? prev.salaryMin,
+      salaryMax: imported.salaryMax ?? prev.salaryMax,
+      notes: imported.notes
+        ? [prev.notes, imported.notes].filter(Boolean).join("\n\n")
+        : prev.notes,
     }));
     setImportedSource(imported.source ?? "Chrome extension");
     window.history.replaceState(null, "", window.location.pathname);

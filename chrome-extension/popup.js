@@ -214,8 +214,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       companyName: pageData.companyName || "",
       jobTitle: pageData.jobTitle || "",
       jobDescriptionUrl: pageData.cleanUrl || "",
+      jobApplicationUrl: pageData.jobApplicationUrl || "",
       jobDescription: pageData.jobDescription || "",
       applicationMedium: "LinkedIn",
+      workplaceType: pageData.workplaceType || "",
+      workLocationCity: pageData.workLocationCity || "",
+      workLocationState: pageData.workLocationState || "",
+      employmentType: pageData.employmentType || "",
+      compensationType: pageData.compensationType || "",
+      salaryMin: pageData.salaryMin || "",
+      salaryMax: pageData.salaryMax || "",
+      notes: pageData.notes || "",
     });
 
     await chrome.tabs.create({

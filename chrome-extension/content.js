@@ -25,6 +25,12 @@ const COMPANY_SELECTORS = [
   ".topcard__flavor",
 ];
 
+const TOP_CARD_SELECTORS = [
+  ".job-details-jobs-unified-top-card__primary-description-container",
+  ".job-details-jobs-unified-top-card__job-insight-view-model-secondary",
+  ".job-details-jobs-unified-top-card",
+];
+
 function encodeImportPayload(payload) {
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
   let binary = "";
@@ -51,13 +57,79 @@ function getFirstText(selectors) {
   return "";
 }
 
+function normalizeText(text) {
+  return text
+    .replace(/\r/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function getElementText(element) {
+  const text = element?.innerText?.trim() || element?.textContent?.trim() || "";
+  return normalizeText(text);
+}
+
+function getHeadingScopedDescription() {
+  const headings = Array.from(document.querySelectorAll("h1, h2, h3, h4"));
+  const aboutHeading = headings.find((heading) =>
+    heading.textContent?.trim().toLowerCase() === "about the job"
+  );
+
+  if (!aboutHeading) {
+    return "";
+  }
+
+  const containerCandidates = [
+    aboutHeading.parentElement?.parentElement,
+    aboutHeading.parentElement,
+    aboutHeading.closest("section"),
+    aboutHeading.closest("main"),
+  ].filter(Boolean);
+
+  for (const candidate of containerCandidates) {
+    if (!(candidate instanceof HTMLElement)) continue;
+
+    const clone = candidate.cloneNode(true);
+    if (!(clone instanceof HTMLElement)) continue;
+
+    clone.querySelectorAll("button, script, style, svg").forEach((node) => node.remove());
+
+    const text = getElementText(clone);
+    if (!text) continue;
+
+    const normalizedHeading = "About the job";
+    if (text.startsWith(normalizedHeading)) {
+      const trimmed = text.slice(normalizedHeading.length).trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+
+    if (text.toLowerCase().includes("about the job")) {
+      const parts = text.split(/about the job/i);
+      const trimmed = parts.slice(1).join(" ").trim();
+      if (trimmed) {
+        return normalizeText(trimmed);
+      }
+    }
+  }
+
+  return "";
+}
+
 function getJobDescription() {
   for (const selector of DESCRIPTION_SELECTORS) {
     const element = document.querySelector(selector);
-    const text = element?.innerText?.trim();
+    const text = getElementText(element);
     if (text) {
-      return text.replace(/\n{3,}/g, "\n\n");
+      return text;
     }
+  }
+
+  const headingScopedDescription = getHeadingScopedDescription();
+  if (headingScopedDescription) {
+    return headingScopedDescription;
   }
 
   for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
@@ -68,9 +140,9 @@ function getJobDescription() {
         if (record?.["@type"] === "JobPosting" && typeof record.description === "string") {
           const html = document.createElement("div");
           html.innerHTML = record.description;
-          const text = html.textContent?.trim();
+          const text = getElementText(html);
           if (text) {
-            return text.replace(/\n{3,}/g, "\n\n");
+            return text;
           }
         }
       }
@@ -82,6 +154,111 @@ function getJobDescription() {
   return "";
 }
 
+function getMetadataLineText() {
+  for (const selector of TOP_CARD_SELECTORS) {
+    const root = document.querySelector(selector);
+    const text = getElementText(root);
+    if (text) {
+      return text;
+    }
+  }
+
+  const fallbackParagraphs = Array.from(document.querySelectorAll("p"))
+    .map((paragraph) => getElementText(paragraph))
+    .filter(Boolean);
+
+  return fallbackParagraphs.find((text) =>
+    /applicants|reposted|promoted by hirer|actively reviewing applicants/i.test(text)
+  ) || "";
+}
+
+function extractLocation(metadataText) {
+  const firstSegment = metadataText.split("·").map((part) => part.trim()).find(Boolean) || "";
+  return /applicants|reposted|promoted/i.test(firstSegment) ? "" : firstSegment;
+}
+
+function extractApplicantsCount(metadataText) {
+  const match = metadataText.match(/(\d+)\s+applicants/i);
+  return match ? Number(match[1]) : null;
+}
+
+function extractRelativePosted(metadataText) {
+  const match = metadataText.match(/(reposted\s+.+?|posted\s+.+?)(?:·|$)/i);
+  return match ? match[1].trim() : "";
+}
+
+function extractTopCardBadges() {
+  const badges = Array.from(document.querySelectorAll("a span, button span, div span"))
+    .map((node) => getElementText(node))
+    .filter(Boolean);
+
+  const unique = Array.from(new Set(badges));
+  return {
+    easyApply: unique.some((text) => /^easy apply$/i.test(text)),
+    remote: unique.some((text) => /^remote$/i.test(text)),
+    employmentType:
+      unique.find((text) => /^(full-time|part-time|contract|temporary|internship)$/i.test(text)) || "",
+    salaryText:
+      unique.find((text) => /\$\d[\d,]*(?:k|K)?(?:\/yr|\/hr)?\s*-\s*\$\d/i.test(text)) || "",
+  };
+}
+
+function parseSalaryRange(salaryText) {
+  const match = salaryText.match(/\$([\d,.]+)\s*([kK])?(?:\/yr|\/hr)?\s*-\s*\$([\d,.]+)\s*([kK])?(\/yr|\/hr)?/);
+  if (!match) {
+    return {
+      compensationType: "",
+      salaryMin: "",
+      salaryMax: "",
+    };
+  }
+
+  const toNumber = (value, suffix) => {
+    const numeric = Number(value.replace(/,/g, ""));
+    if (!Number.isFinite(numeric)) return "";
+    return String(suffix ? numeric * 1000 : numeric);
+  };
+
+  const unit = match[5] || "";
+  return {
+    compensationType: unit.toLowerCase() === "/hr" ? "hourly" : "salary",
+    salaryMin: toNumber(match[1], match[2]),
+    salaryMax: toNumber(match[3], match[4]),
+  };
+}
+
+function splitCityState(location) {
+  const parts = location.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) {
+    return { city: location, state: "" };
+  }
+
+  return {
+    city: parts.slice(0, -1).join(", "),
+    state: parts[parts.length - 1],
+  };
+}
+
+function getApplicationUrl() {
+  const easyApplyLink = Array.from(document.querySelectorAll('a[href*="/jobs/view/"]'))
+    .find((link) => /easy apply/i.test(getElementText(link)));
+
+  return easyApplyLink?.href || getCleanLinkedInUrl();
+}
+
+function buildImportedNotes(metadata) {
+  const noteLines = [
+    metadata.relativePosted ? `LinkedIn posted status: ${metadata.relativePosted}` : "",
+    metadata.applicantsCount !== null ? `LinkedIn applicants: ${metadata.applicantsCount}` : "",
+    metadata.easyApply ? "LinkedIn apply flow: Easy Apply" : "",
+    metadata.remote ? "LinkedIn workplace hint: Remote" : "",
+    metadata.promoted ? "LinkedIn promotion: Promoted by hirer" : "",
+    metadata.activelyReviewing ? "LinkedIn review status: Actively reviewing applicants" : "",
+  ].filter(Boolean);
+
+  return noteLines.join("\n");
+}
+
 function getJobData() {
   const supported = window.location.hostname === "www.linkedin.com" &&
     window.location.pathname.startsWith("/jobs/view/");
@@ -90,12 +267,47 @@ function getJobData() {
     return { supported: false };
   }
 
+  const metadataText = getMetadataLineText();
+  const location = extractLocation(metadataText);
+  const badges = extractTopCardBadges();
+  const salary = parseSalaryRange(badges.salaryText);
+  const splitLocation = location && !/^remote$/i.test(location) ? splitCityState(location) : { city: "", state: "" };
+  const applicantsCount = extractApplicantsCount(metadataText);
+  const relativePosted = extractRelativePosted(metadataText);
+  const promoted = /promoted by hirer/i.test(metadataText);
+  const activelyReviewing = /actively reviewing applicants/i.test(metadataText);
+
   return {
     supported: true,
     cleanUrl: getCleanLinkedInUrl(),
     jobTitle: getFirstText(TITLE_SELECTORS),
     companyName: getFirstText(COMPANY_SELECTORS),
     jobDescription: getJobDescription(),
+    jobApplicationUrl: getApplicationUrl(),
+    workplaceType: badges.remote || /^remote$/i.test(location) ? "remote" : location ? "on_site" : "",
+    workLocationCity: splitLocation.city,
+    workLocationState: splitLocation.state,
+    employmentType:
+      badges.employmentType.toLowerCase() === "part-time" ? "part_time"
+      : badges.employmentType.toLowerCase() === "contract" ? "contract"
+      : badges.employmentType ? "full_time"
+      : "",
+    compensationType: salary.compensationType,
+    salaryMin: salary.salaryMin,
+    salaryMax: salary.salaryMax,
+    applicantsCount,
+    relativePosted,
+    easyApply: badges.easyApply,
+    promoted,
+    activelyReviewing,
+    notes: buildImportedNotes({
+      relativePosted,
+      applicantsCount,
+      easyApply: badges.easyApply,
+      remote: badges.remote || /^remote$/i.test(location),
+      promoted,
+      activelyReviewing,
+    }),
   };
 }
 
@@ -215,8 +427,17 @@ async function openInApp(data) {
     companyName: data.companyName || "",
     jobTitle: data.jobTitle || "",
     jobDescriptionUrl: data.cleanUrl || "",
+    jobApplicationUrl: data.jobApplicationUrl || "",
     jobDescription: data.jobDescription || "",
     applicationMedium: "LinkedIn",
+    workplaceType: data.workplaceType || "",
+    workLocationCity: data.workLocationCity || "",
+    workLocationState: data.workLocationState || "",
+    employmentType: data.employmentType || "",
+    compensationType: data.compensationType || "",
+    salaryMin: data.salaryMin || "",
+    salaryMax: data.salaryMax || "",
+    notes: data.notes || "",
   });
 
   window.open(`${appOrigin.replace(/\/$/, "")}/applications/new#import=${payload}`, "_blank", "noopener,noreferrer");
